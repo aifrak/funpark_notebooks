@@ -1,0 +1,620 @@
+# Define Logic with Predicates
+
+```elixir
+Mix.install([
+  {:fun_park, path: "/mnt/funpark_lib"}
+])
+```
+
+## Advanced Functional Programming with Elixir
+
+|                                                                                                    |                                                                                                                                                                              |
+| -------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| <img src="https://www.joekoski.com/assets/images/jkelixir_small.jpg" alt="Book cover" width="120"> | **Interactive Examples from Chapter 5**<br/>[Advanced Functional Programming with Elixir](https://pragprog.com/titles/jkelixir/advanced-functional-programming-with-elixir). |
+
+## Simple Predicates
+
+````markdown
+```elixir
+def online?(%__MODULE__{online: online}), do: online
+```
+````
+
+````markdown
+```elixir
+def long_wait?(%__MODULE__{wait_time: wait_time}), do: wait_time > 30
+```
+````
+
+Let's start by generating a ride:
+
+```elixir
+tea_cup = FunPark.Ride.make("Tea Cup", online: true, wait_time: 100)
+```
+
+The Tea Cup is online:
+
+```elixir
+FunPark.Ride.online?(tea_cup)
+```
+
+And it has a long wait:
+
+```elixir
+FunPark.Ride.long_wait?(tea_cup)
+```
+
+````markdown
+```elixir
+def p_not(predicate) do
+  fn value -> not predicate.(value) end
+end
+```
+````
+
+````markdown
+```elixir
+def short_wait?, do: p_not(&long_wait?/1)
+```
+````
+
+## Combine Predicates
+
+### All
+
+````markdown
+```elixir
+defmodule FunPark.Monoid.PredAll do
+  defstruct pred: fn _ -> true end
+end
+
+defimpl FunPark.Monoid, for: FunPark.Monoid.PredAll do
+  def empty(_), do: %FunPark.Monoid.PredAll{}
+  def append(%{pred: pred_a}, %{pred: pred_b}) do
+    %FunPark.Monoid.PredAll{pred: fn value -> pred_a.(value) and pred_b.(value) end}
+  end
+  def wrap(_, pred), do: %FunPark.Monoid.PredAll{pred: pred}
+  def unwrap(%{pred: pred}), do: pred
+end
+```
+````
+
+### Any
+
+````markdown
+```elixir
+defmodule FunPark.Monoid.PredAny do
+  defstruct pred: fn _ -> false end
+end
+
+defimpl FunPark.Monoid, for: FunPark.Monoid.PredAny do
+  def empty(_), do: %FunPark.Monoid.PredAny{}
+  def append(%{pred: pred_a}, %{pred: pred_b}) do
+    %FunPark.Monoid.PredAny{pred: fn value -> pred_a.(value) or pred_b.(value) end}
+  end
+  def wrap(_, pred), do: %FunPark.Monoid.PredAny{pred: pred}
+  def unwrap(%{pred: pred}), do: pred
+end
+```
+````
+
+````markdown
+```elixir
+def p_all(predicates) when is_list(predicates) do
+  FunPark.Monoid.Utils.m_concat(%FunPark.Monoid.PredAll{}, predicates)
+end
+
+def p_any(predicates) when is_list(predicates) do
+  FunPark.Monoid.Utils.m_concat(%FunPark.Monoid.PredAny{}, predicates)
+end
+
+def p_not(predicate) do
+  fn value -> not predicate.(value) end
+end
+```
+````
+
+````markdown
+```elixir
+def suggested?(%__MODULE__{} = ride) do
+  p_all([&online?/1, p_not(&long_wait?/1)]).(ride)
+end
+```
+````
+
+The Tea Cup ride is not suggested because it has a wait time of 100 minutes:
+
+```elixir
+tea_cup = FunPark.Ride.make("Tea Cup", online: true, wait_time: 100)
+```
+
+```elixir
+FunPark.Ride.suggested?(tea_cup)
+```
+
+Later, the wait time for the Tea Cup ride shortens to 10 minutes, making it a suggested ride:
+
+```elixir
+tea_cup = FunPark.Ride.change(tea_cup, %{wait_time: 10})
+```
+
+```elixir
+FunPark.Ride.suggested?(tea_cup)
+```
+
+## Predicates That Span Contexts
+
+````markdown
+```elixir
+def tall_enough?(%Patron{} = patron, %__MODULE__{} = ride) do
+  Patron.get_height(patron) >= ride.min_height
+end
+```
+````
+
+````markdown
+```elixir
+def old_enough?(%Patron{} = patron, %__MODULE__{} = ride) do
+  Patron.get_age(patron) >= ride.min_age
+end
+```
+````
+
+````markdown
+```elixir
+def eligible?(%Patron{} = patron, %__MODULE__{} = ride),
+  do: p_all([&tall_enough?/2, &old_enough?/2]).(patron, ride)
+```
+````
+
+Let's start with a patron and a ride:
+
+```elixir
+roller_mtn = FunPark.Ride.make(
+  "Roller Mountain", min_height: 120, min_age: 12
+)
+```
+
+```elixir
+alice = FunPark.Patron.make("Alice", 13, 119)
+```
+
+Alice meets the age requirement but does not meet the height requirement:
+
+```elixir
+alice |> FunPark.Ride.old_enough?(roller_mtn)
+```
+
+```elixir
+alice |> FunPark.Ride.tall_enough?(roller_mtn)
+```
+
+This means Alice is not eligible to ride Roller Mountain:
+
+```elixir
+alice |> FunPark.Ride.eligible?(roller_mtn)
+```
+
+However, if Alice grows a bit over the summer, she will be eligible:
+
+```elixir
+alice = FunPark.Patron.change(alice, %{height: 121})
+```
+
+```elixir
+alice |> FunPark.Ride.eligible?(roller_mtn)
+```
+
+## Compose Multi-Arity Functions with Curry
+
+````markdown
+```elixir
+def curry(fun) do
+  case :erlang.fun_info(fun, :arity) do
+    {:arity, 1} ->
+      fn arg -> fun.(arg) end
+
+    {:arity, arity} ->
+      fn arg ->
+        curry(fn args -> fun.(arg, args) end)
+      end
+  end
+end
+```
+````
+
+````markdown
+```elixir
+def eligible?(%Patron{} = patron, %__MODULE__{} = ride) do
+  p_all([
+    Utils.curry(&tall_enough?/2),
+    Utils.curry(&old_enough?/2)
+  ]).(patron, ride)
+end
+```
+````
+
+````markdown
+```elixir
+def suggested?(%Patron{} = patron, %__MODULE__{} = ride) do
+  p_all([
+    &suggested?/1,
+    Utils.curry(&eligible?/2)
+  ]).(patron, ride)
+end
+```
+````
+
+Now we can check whether Roller Mountain is a suggested ride for Alice:
+
+```elixir
+alice |> FunPark.Ride.suggested?(roller_mtn)
+```
+
+If we take Roller Mountain offline, the result changes:
+
+```elixir
+roller_mtn = FunPark.Ride.change(roller_mtn, %{online: false})
+alice |> FunPark.Ride.suggested?(roller_mtn)
+```
+
+## Harness Predicates for Collections
+
+Let's start by defining a mixture of online and offline rides:
+
+```elixir
+thunder_loop = FunPark.Ride.make("Thunder Loop")
+ghost_hollow = FunPark.Ride.make("Ghost Hollow", online: false)
+rocket_ridge = FunPark.Ride.make("Rocket Ridge")
+jungle_river = FunPark.Ride.make("Jungle River", online: false)
+nebula_falls = FunPark.Ride.make("Nebula Falls")
+timber_twister = FunPark.Ride.make("Timber Twister", online: false)
+
+rides = [
+  thunder_loop,
+  ghost_hollow,
+  rocket_ridge,
+  jungle_river,
+  nebula_falls,
+  timber_twister
+]
+
+online? = &FunPark.Ride.online?/1
+```
+
+### Predicate Checks
+
+Are all rides online? If not, are any available?
+
+```elixir
+rides |> Enum.all?(online?)
+```
+
+```elixir
+rides |> Enum.any?(online?)
+```
+
+### Counting
+
+To monitor availability, it helps to know how many rides are currently online:
+
+```elixir
+rides |> Enum.count(online?)
+```
+
+### Finding Elements
+
+Sometimes it's useful to locate the first ride that's online—both the ride itself and its position in the list:
+
+```elixir
+rides |> Enum.find(online?)
+```
+
+```elixir
+rides |> Enum.find_index(online?)
+```
+
+### Filtering Elements
+
+Sometimes we just want a clean list of rides that are currently online:
+
+```elixir
+rides |> Enum.filter(online?)
+```
+
+### Rejecting Elements
+
+Or the opposite—a list of all rides that are currently not online:
+
+```elixir
+rides |> Enum.reject(online?)
+```
+
+### Taking and Dropping While
+
+To reason about ride availability at the top of the list, we can isolate the initial online segment:
+
+```elixir
+rides |> Enum.take_while(online?)
+```
+
+And then examine everything that comes after—starting with the first offline ride:
+
+```elixir
+rides |> Enum.drop_while(online?)
+```
+
+### Splitting a List
+
+Rather than taking or dropping, we can split the list at the first offline ride:
+
+```elixir
+rides |> Enum.split_while(online?)
+```
+
+### Suggested Rides
+
+````markdown
+```elixir
+def suggested_rides(%Patron{} = patron, rides) do
+  Enum.filter(rides, &suggested?(patron, &1))
+end
+```
+````
+
+Let's start by generating some rides and patrons:
+
+```elixir
+tea_cup = FunPark.Ride.make("Tea Cup")
+roller_mtn = FunPark.Ride.make("Roller Mountain", min_height: 120)
+haunted_mansion = FunPark.Ride.make("Haunted Mansion", min_age: 14)
+rides = [tea_cup, roller_mtn, haunted_mansion]
+
+alice = FunPark.Patron.make("Alice", 13, 150)
+beth = FunPark.Patron.make("Beth", 15, 110)
+```
+
+Alice is tall enough for Roller Mountain, but not old enough for the Haunted Mansion. Her suggested rides include Tea Cup and Roller Mountain:
+
+```elixir
+alice |> FunPark.Ride.suggested_rides(rides)
+```
+
+Beth meets the age requirement for Haunted Mansion but isn't tall enough for Roller Mountain. Her suggested rides include Tea Cup and Haunted Mansion:
+
+```elixir
+beth |> FunPark.Ride.suggested_rides(rides)
+```
+
+Later, the wait time for Tea Cup increases, making it no longer eligible for Beth:
+
+```elixir
+tea_cup = FunPark.Ride.change(tea_cup, %{wait_time: 40})
+rides = [tea_cup, roller_mtn, haunted_mansion]
+beth |> FunPark.Ride.suggested_rides(rides)
+```
+
+## Model the FastPass
+
+### FastPass Management in the Patron Context
+
+````markdown
+```elixir
+def add_fast_pass(%__MODULE__{} = patron, %FastPass{} = fast_pass) do
+  change(patron, %{fast_passes: List.union([fast_pass], patron.fast_passes)})
+end
+```
+````
+
+````markdown
+```elixir
+def remove_fast_pass(%__MODULE__{} = patron, %FastPass{} = fast_pass) do
+  change(patron, %{fast_passes: List.difference(patron.fast_passes, [fast_pass])})
+end
+```
+````
+
+Let's start by generating a fast pass and a patron:
+
+```elixir
+tea_cup = FunPark.Ride.make("Tea Cup")
+datetime = DateTime.new!(~D[2025-06-01], ~T[13:00:00])
+fast_pass = FunPark.FastPass.make(tea_cup, datetime)
+
+alice = FunPark.Patron.make("Alice", 13, 150)
+```
+
+Alice can add a fast pass for the Tea Cup ride:
+
+```elixir
+alice = FunPark.Patron.add_fast_pass(alice, fast_pass)
+```
+
+And she can remove it when it's no longer needed:
+
+```elixir
+alice = FunPark.Patron.remove_fast_pass(alice, fast_pass)
+```
+
+### Validity Rules in the FastPass Context
+
+````markdown
+```elixir
+def get_ride(%__MODULE__{ride: ride}), do: ride
+```
+````
+
+````markdown
+```elixir
+def valid?(%__MODULE__{} = fast_pass, %Ride{} = ride) do
+  Eq.eq?(get_ride(fast_pass), ride)
+end
+```
+````
+
+### Fast Lane Access
+
+````markdown
+```elixir
+def fast_pass?(%Patron{} = patron, %__MODULE__{} = ride) do
+  patron
+  |> Patron.get_fast_passes()
+  |> Enum.any?(&FastPass.valid?(&1, ride))
+end
+```
+````
+
+Let's start by creating a ride, a fast pass, and a patron:
+
+```elixir
+haunted_mansion = FunPark.Ride.make("Haunted Mansion", min_age: 14)
+datetime = DateTime.new!(~D[2025-06-01], ~T[13:00:00])
+fast_pass = FunPark.FastPass.make(haunted_mansion, datetime)
+
+alice = FunPark.Patron.make("Alice", 13, 150)
+```
+
+Without a fast pass, Alice is not eligible for a the Haunted Mansion:
+
+```elixir
+alice |> FunPark.Ride.fast_pass?(haunted_mansion)
+```
+
+Let's give her one:
+
+```elixir
+alice = FunPark.Patron.add_fast_pass(alice, fast_pass)
+```
+
+Now she's eligible:
+
+```elixir
+alice |> FunPark.Ride.fast_pass?(haunted_mansion)
+```
+
+````markdown
+```elixir
+def fast_pass_lane?(%Patron{} = patron, %__MODULE__{} = ride) do
+  has_fast_pass = curry(&fast_pass?/2).(patron)
+  is_eligible = curry(&eligible?/2).(patron)
+
+  p_all([has_fast_pass, is_eligible]).(ride)
+end
+```
+````
+
+````markdown
+```elixir
+def vip?(%__MODULE__{ticket_tier: :vip}), do: true
+def vip?(%__MODULE__{}), do: false
+```
+````
+
+````markdown
+```elixir
+def curry_r(fun) do
+  case :erlang.fun_info(fun, :arity) do
+    {:arity, 1} ->
+      fn arg -> fun.(arg) end
+
+    {:arity, 2} ->
+      fn arg2, arg1 -> fun.(arg1, arg2) end
+  end
+end
+```
+````
+
+````markdown
+```elixir
+def fast_pass_lane?(%Patron{} = patron, %__MODULE__{} = ride) do
+  has_fast_pass_or_vip = p_any([
+    curry_r(&fast_pass?/2),
+    fn _ -> Patron.vip?(patron) end
+  ])
+
+  is_eligible = curry_r(&eligible?/2)
+
+  p_all([has_fast_pass_or_vip, is_eligible]).(ride)
+end
+```
+````
+
+Let's regenerate our patrons, a ride, and a fast pass:
+
+```elixir
+alice = FunPark.Patron.make("Alice", 13, 150)
+beth = FunPark.Patron.make("Beth", 15, 110)
+
+haunted_mansion = FunPark.Ride.make("Haunted Mansion", min_age: 14)
+datetime = DateTime.new!(~D[2025-06-01], ~T[13:00:00])
+fast_pass = FunPark.FastPass.make(haunted_mansion, datetime)
+```
+
+We'll give Alice a fast pass to the Haunted Mansion:
+
+```elixir
+alice = FunPark.Patron.add_fast_pass(alice, fast_pass)
+```
+
+Although Alice has a fast pass, she's too young to ride the Haunted Mansion. Meanwhile, Beth—who doesn't have a fast pass—is also ineligible for the fast lane:
+
+```elixir
+alice |> FunPark.Ride.fast_pass_lane?(haunted_mansion)
+```
+
+```elixir
+beth |> FunPark.Ride.fast_pass_lane?(haunted_mansion)
+```
+
+Later, Beth upgrades her ticket. As a VIP, she's now eligible for the fast lane—even without a fast pass:
+
+```elixir
+beth = FunPark.Patron.change(beth, %{ticket_tier: :vip})
+beth |> FunPark.Ride.fast_pass_lane?(haunted_mansion)
+```
+
+## Fold Conditional Logic
+
+````markdown
+```elixir
+defimpl FunPark.Foldable, for: Function do
+  def fold_l(pred, true_fun, false_fun) when is_function(pred, 0) do
+    if pred.() do
+      true_fun.()
+    else
+      false_fun.()
+    end
+  end
+  
+  def foldr(pred, true_fun, false_fun) do
+    fold_l(pred, true_fun, false_fun)
+  end
+end
+```
+````
+
+Let's start by generating the Tea Cup ride with a 100-minute wait:
+
+```elixir
+tea_cup = FunPark.Ride.make("Tea Cup", online: true, wait_time: 100)
+```
+
+Earlier, our `Ride` expert introduced `suggested?/1`, a predicate that returns `true` for rides that are online and have a wait under 30 minutes. With a 100-minute wait, the Tea Cup doesn't qualify:
+
+```elixir
+FunPark.Ride.suggested?(tea_cup)
+```
+
+We can fold the predicate result into a string—`"Yes"` or `"No"`—using `fold_l/3`:
+
+```elixir
+yes_or_no = fn val, pred -> 
+  FunPark.Foldable.fold_l(fn -> 
+    pred.(val) end, fn -> "Yes" end, fn -> "No" end) end
+```
+
+This lets us convert branching logic into a single result:
+
+```elixir
+yes_or_no.(tea_cup, &FunPark.Ride.suggested?/1)
+```

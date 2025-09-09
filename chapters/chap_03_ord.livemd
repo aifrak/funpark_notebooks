@@ -1,0 +1,410 @@
+# Create Flexible Ordering with Protocols
+
+```elixir
+Mix.install([
+  {:fun_park, path: "/mnt/funpark_lib"}
+])
+```
+
+## Advanced Functional Programming with Elixir
+
+|                                                                                                    |                                                                                                                                                                              |
+| -------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| <img src="https://www.joekoski.com/assets/images/jkelixir_small.jpg" alt="Book cover" width="120"> | **Interactive Examples from Chapter 3**<br/>[Advanced Functional Programming with Elixir](https://pragprog.com/titles/jkelixir/advanced-functional-programming-with-elixir). |
+
+## Define Order with a Protocol
+
+````markdown
+```elixir
+defprotocol FunPark.Ord do
+  def lt?(a, b)
+  def le?(a, b) 
+  def gt?(a, b)
+  def ge?(a, b)
+end
+```
+````
+
+````markdown
+```elixir
+defimpl FunPark.Ord, for: Any do
+  def lt?(a, b), do: a < b
+  def le?(a, b), do: a <= b
+  def gt?(a, b), do: a > b 
+  def ge?(a, b), do: a >= b
+end
+```
+````
+
+Using Elixir's operators:
+
+```elixir
+1 < 2
+```
+
+```elixir
+1 > 2
+```
+
+Our `Ord` implementation produces the same results:
+
+```elixir
+FunPark.Ord.lt?(1, 2)
+```
+
+```elixir
+FunPark.Ord.gt?(1, 2)
+```
+
+## Implement Order for FunPark Contexts
+
+### Ride Context
+
+Rides should be ordered by name:
+
+````markdown
+```elixir
+defimpl FunPark.Ord, for: FunPark.Ride do
+  alias FunPark.Ord
+  alias FunPark.Ride
+  def lt?(%Ride{name: v1}, %Ride{name: v2}), do: Ord.lt?(v1, v2)
+  def le?(%Ride{name: v1}, %Ride{name: v2}), do: Ord.le?(v1, v2)
+  def gt?(%Ride{name: v1}, %Ride{name: v2}), do: Ord.gt?(v1, v2)
+  def ge?(%Ride{name: v1}, %Ride{name: v2}), do: Ord.ge?(v1, v2)
+end
+```
+````
+
+First, let's make a couple of rides:
+
+```elixir
+banana_slip = FunPark.Ride.make("Banana Slip")
+```
+
+```elixir
+apple_cart = FunPark.Ride.make("Apple Cart")
+```
+
+Elixir's built-in `<` operator sorts Apple Cart *after* Banana Slip:
+
+```elixir
+apple_cart < banana_slip
+```
+
+Our `Ord` protocol knows that `Ride` values should be compared by `name`:
+
+```elixir
+FunPark.Ord.lt?(apple_cart, banana_slip)
+```
+
+### FastPass Context
+
+FastPasses should be ordered by time:
+
+````markdown
+```elixir  
+defimpl FunPark.Ord, for: FunPark.FastPass do
+  alias FunPark.Ord
+  alias FunPark.FastPass
+  def lt?(%FastPass{time: v1}, %FastPass{time: v2}), do: Ord.lt?(v1, v2)
+  def le?(%FastPass{time: v1}, %FastPass{time: v2}), do: Ord.le?(v1, v2)
+  def gt?(%FastPass{time: v1}, %FastPass{time: v2}), do: Ord.gt?(v1, v2)
+  def ge?(%FastPass{time: v1}, %FastPass{time: v2}), do: Ord.ge?(v1, v2)
+end
+```
+````
+
+Let's create a couple of timestamps to illustrate the problem:
+
+```elixir
+datetime_1 = DateTime.new!(~D[2025-06-01], ~T[13:10:00.000005])
+datetime_2 = DateTime.new!(~D[2025-06-01], ~T[13:40:00.000004])
+```
+
+The first comes before the second, so it should be less—but it's not:
+
+```elixir
+datetime_1 < datetime_2
+```
+
+`DateTime.compare/2`, on the other hand, does understand time:
+
+```elixir
+DateTime.compare(datetime_1, datetime_2)
+```
+
+We can implement our own `Ord` instance for `DateTime`:
+
+````markdown
+```elixir
+defimpl FunPark.Ord, for: DateTime do
+  def lt?(a, b), do: DateTime.compare(a, b) == :lt
+  def le?(a, b), do: DateTime.compare(a, b) in [:lt, :eq]
+  def gt?(a, b), do: DateTime.compare(a, b) == :gt
+  def ge?(a, b), do: DateTime.compare(a, b) in [:gt, :eq]
+end
+```
+````
+
+Let's start with a couple of FastPasses:
+
+```elixir
+apple_cart = FunPark.Ride.make("Apple Cart")
+banana_slip = FunPark.Ride.make("Banana Slip")
+
+datetime_1 = DateTime.new!(~D[2025-06-01], ~T[13:10:00.000005])
+datetime_2 = DateTime.new!(~D[2025-06-01], ~T[13:40:00.000004])
+
+fast_pass_1 = FunPark.FastPass.make(banana_slip, datetime_1)
+fast_pass_2 = FunPark.FastPass.make(apple_cart, datetime_2)
+```
+
+Our default `Ord` correctly identifies that the first pass comes before the second:
+
+```elixir
+FunPark.Ord.lt?(fast_pass_1, fast_pass_2)
+```
+
+If we update `fast_pass_1` to a later time:
+
+```elixir
+time_3 = DateTime.new!(~D[2025-06-01], ~T[15:00:00.000012])
+fast_pass_1 = FunPark.FastPass.change(fast_pass_1, %{time: time_3})
+```
+
+The first pass is now considered greater:
+
+```elixir
+FunPark.Ord.gt?(fast_pass_1, fast_pass_2)
+```
+
+## Transform Inputs Before Comparison
+
+````markdown
+```elixir
+def contramap(f) do
+  %{
+    lt?: fn a, b -> Ord.lt?(f.(a), f.(b)) end,
+    le?: fn a, b -> Ord.le?(f.(a), f.(b)) end,
+    gt?: fn a, b -> Ord.gt?(f.(a), f.(b)) end,
+    ge?: fn a, b -> Ord.ge?(f.(a), f.(b)) end
+  }
+end
+```
+````
+
+Ticket tiers should be sorted in order: `:basic`, `:premium`, `:vip`:
+
+````markdown
+```elixir
+def get_ticket_tier(%__MODULE__{ticket_tier: tier}), do: tier
+
+def ticket_tier_to_int(:basic), do: 1
+def ticket_tier_to_int(:premium), do: 2  
+def ticket_tier_to_int(:vip), do: 3
+
+def ord_by_ticket_tier do
+  Ord.Utils.contramap(fn patron ->
+    patron |> get_ticket_tier() |> ticket_tier_to_int()
+  end)
+end
+```
+````
+
+Let's start with two patrons with differing ticket tiers:
+
+```elixir
+alice = FunPark.Patron.make("Alice", 15, 50, ticket_tier: :premium)
+beth = FunPark.Patron.make("Beth", 16, 53)
+```
+
+Alice ranks higher than Beth due to her `:premium` ticket:
+
+```elixir
+ticket_ord = FunPark.Patron.ord_by_ticket_tier()
+ticket_ord.gt?.(alice, beth)
+```
+
+Later, Beth decides to upgrade to `:vip`:
+
+```elixir
+beth = FunPark.Patron.change(beth, %{ticket_tier: :vip})
+```
+
+With a `:vip` ticket, Beth now ranks higher than Alice:
+
+```elixir
+ticket_ord.gt?.(beth, alice)
+```
+
+## Harness Order for Collections
+
+### Single-Purpose Sorting
+
+````markdown
+```elixir
+def sort_rides(rides) do
+  Enum.sort(rides, fn ride1, ride2 -> ride1.name < ride2.name end)
+end
+```
+````
+
+Now we can create a couple of rides and sort them:
+
+```elixir
+apple_cart = FunPark.Ride.make("Apple Cart")
+banana_slip = FunPark.Ride.make("Banana Slip")
+
+FunPark.List.sort_rides([banana_slip, apple_cart])
+```
+
+### Generalize the Sort
+
+````markdown
+```elixir
+def compare(a, b, ord \\ Ord) do
+  ord = to_ord_map(ord)
+  cond do
+    ord.lt?.(a, b) -> :lt
+    ord.gt?.(a, b) -> :gt
+    true -> :eq
+  end
+end
+```
+````
+
+We can compare simple values:
+
+```elixir
+FunPark.Ord.Utils.compare(1, 1)
+```
+
+```elixir
+FunPark.Ord.Utils.compare(1, 2)
+```
+
+```elixir
+FunPark.Ord.Utils.compare(1, 0)
+```
+
+And context-aware values, such as rides:
+
+```elixir
+apple_cart = FunPark.Ride.make("Apple Cart")
+banana_slip = FunPark.Ride.make("Banana Slip")
+
+FunPark.Ord.Utils.compare(apple_cart, apple_cart)
+```
+
+```elixir
+FunPark.Ord.Utils.compare(apple_cart, banana_slip)
+```
+
+```elixir
+FunPark.Ord.Utils.compare(banana_slip, apple_cart)
+```
+
+````markdown
+```elixir
+def sort(list, ord \\ Ord) do
+  comparator = comparator(ord)
+  Enum.sort(list, comparator)  
+end
+```
+````
+
+We can sort simple values:
+
+```elixir
+FunPark.List.sort([:banana, :pear, :apple])
+```
+
+Or context-aware values that have implemented the `Ord` protocol:
+
+```elixir
+banana_slip = FunPark.Ride.make("Banana Slip")
+apple_cart = FunPark.Ride.make("Apple Cart")
+
+FunPark.List.sort([banana_slip, apple_cart])
+```
+
+### Strict Sort
+
+Let's create a few rides:
+
+```elixir
+tea_cup = FunPark.Ride.make("Tea Cup", wait_time: 40)
+haunted_mansion = FunPark.Ride.make("Haunted Mansion", wait_time: 20)
+river_ride = FunPark.Ride.make("River Ride", wait_time: 40)
+rides = [tea_cup, haunted_mansion, river_ride]
+```
+
+Using `ord_by_wait_time/0`, we can sort rides by their current wait times:
+
+```elixir
+ord_wait_time = FunPark.Ride.ord_by_wait_time()
+FunPark.List.sort(rides, ord_wait_time)
+```
+
+To generate a snapshot—just one ride per distinct wait time—we use `strict_sort/2`:
+
+```elixir
+FunPark.List.strict_sort(rides, ord_wait_time)
+```
+
+## Reverse the Order
+
+````markdown
+```elixir
+def reverse(ord \\ Ord) do
+  ord = to_ord_map(ord)
+  %{
+    lt?: ord.gt?,
+    le?: ord.ge?,
+    gt?: ord.lt?,
+    ge?: ord.le?
+  }
+end
+```
+````
+
+We can invert the result of `compare/3`:
+
+```elixir
+reverse_ord = FunPark.Ord.Utils.reverse()
+FunPark.Ord.Utils.compare(:apple, :banana)
+```
+
+```elixir
+FunPark.Ord.Utils.compare(:apple, :banana, reverse_ord)
+```
+
+By default, `Patron` sorts by name, so Alice comes before Beth:
+
+```elixir
+alice = FunPark.Patron.make("Alice", 14, 140, ticket_tier: :vip)
+beth = FunPark.Patron.make("Beth", 15, 130, ticket_tier: :premium)
+
+FunPark.List.sort([alice, beth])
+```
+
+With `reverse/0`, Beth now comes before Alice:
+
+```elixir
+reverse_ord = FunPark.Ord.Utils.reverse()
+FunPark.List.sort([alice, beth], reverse_ord)
+```
+
+If we sort by ticket tier, Alice's VIP ticket comes after Beth's Premium:
+
+```elixir
+ticket_ord = FunPark.Patron.ord_by_ticket_tier()
+FunPark.List.sort([alice, beth], ticket_ord)
+```
+
+And with `reverse/1`, we can invert the logic so higher ticket tiers come first:
+
+```elixir
+reverse_ticket_ord = FunPark.Ord.Utils.reverse(ticket_ord)
+FunPark.List.sort([alice, beth], reverse_ticket_ord)
+```

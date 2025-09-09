@@ -1,10 +1,16 @@
+#---
+# Excerpted from "Advanced Functional Programming with Monads in Elixir",
+# published by The Pragmatic Bookshelf.
+# Copyrights apply to this code. It may not be used to create training material,
+# courses, books, articles, and the like. Contact us if you are in doubt.
+# We make no guarantees that this code is fit for any purpose.
+# Visit https://pragprog.com/titles/jkelixir for more book information.
+#---
 defmodule FunPark.Monad.Effect.Left do
   alias FunPark.Monad.Either
 
-  # START:basic
   defstruct [:effect]
 
-  # START:pure
   def pure(value) do
     %__MODULE__{
       effect: fn _env ->
@@ -12,10 +18,6 @@ defmodule FunPark.Monad.Effect.Left do
       end
     }
   end
-
-  # END:pure
-
-  # END:basic
 
   def asks(f) do
     %__MODULE__{
@@ -29,15 +31,9 @@ end
 defimpl FunPark.Monad, for: FunPark.Monad.Effect.Left do
   alias FunPark.Monad.Effect.Left
 
-  # START:map
   def map(%Left{} = left, _transform), do: left
 
-  # END:map
-
-  # START:bind
   def bind(%Left{} = left, _func), do: left
-
-  # END:bind
 
   def ap(%Left{} = left, _func), do: left
 end

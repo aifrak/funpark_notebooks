@@ -1,3 +1,11 @@
+#---
+# Excerpted from "Advanced Functional Programming with Monads in Elixir",
+# published by The Pragmatic Bookshelf.
+# Copyrights apply to this code. It may not be used to create training material,
+# courses, books, articles, and the like. Contact us if you are in doubt.
+# We make no guarantees that this code is fit for any purpose.
+# Visit https://pragprog.com/titles/jkelixir for more book information.
+#---
 defmodule FunPark.Monad.Effect do
   import FunPark.Appendable, only: [append: 2, coerce: 1]
   import FunPark.Monad, only: [map: 2]
@@ -14,7 +22,6 @@ defmodule FunPark.Monad.Effect do
   def asks(f), do: Right.asks(f)
   def fails(f), do: Left.asks(f)
 
-  # START:run
   def run(%_{effect: thunk}, env \\ %{}), do: execute_effect(thunk.(env))
 
   defp execute_effect(task) do
@@ -50,9 +57,8 @@ defmodule FunPark.Monad.Effect do
     result
   end
 
-  # END:run
 
-  # START:lift_func
+  
   def lift_func(thunk) when is_function(thunk, 0) do
     %Right{
       effect: fn _env ->
@@ -67,17 +73,14 @@ defmodule FunPark.Monad.Effect do
     }
   end
 
-  # END:lift_func
 
-  # START:lift_predicate
+  
   def lift_predicate(value, predicate, on_false) do
     if predicate.(value), do: right(value), else: left(on_false.(value))
   end
 
-  # END:lift_predicate
 
-  # START:lift_either
-
+  
   def lift_either(thunk) when is_function(thunk, 0) do
     %Right{
       effect: fn _env ->
@@ -96,15 +99,12 @@ defmodule FunPark.Monad.Effect do
     }
   end
 
-  # END:lift_either
 
-  # START:lift_maybe
+  
   def lift_maybe(%Just{value: value}, _on_none), do: right(value)
   def lift_maybe(%Nothing{}, on_none), do: left(on_none.())
-  # END:lift_maybe
 
-  # START:map_left
-  # def map_left(%Right{} = r, _func), do: r
+  
 
   def map_left(%Right{effect: eff}, func) do
     %Right{
@@ -132,9 +132,8 @@ defmodule FunPark.Monad.Effect do
     }
   end
 
-  # END:map_left
 
-  # START:flip_either
+  
   def flip_either(%Right{effect: eff}) do
     %Right{
       effect: fn env ->
@@ -157,14 +156,12 @@ defmodule FunPark.Monad.Effect do
     }
   end
 
-  # END:flip_either
 
-  # START:sequence
+  
   def sequence(list), do: traverse(list, & &1)
 
-  # END:sequence
 
-  # START:traverse
+  
   def traverse([], _), do: pure([])
 
   def traverse([h | t], f) do
@@ -194,13 +191,11 @@ defmodule FunPark.Monad.Effect do
     end
   end
 
-  # END:traverse
 
-  # START:sequence_a
+  
   def sequence_a(list), do: traverse_a(list, & &1)
-  # END:sequence_a
 
-  # START:traverse_a
+  
   def traverse_a([], _func), do: right([])
 
   def traverse_a(list, func) when is_list(list) and is_function(func, 1) do
@@ -239,7 +234,6 @@ defmodule FunPark.Monad.Effect do
     }
   end
 
-  # END:traverse_a
 
   defp spawn_effect(%Right{effect: eff}, env),
     do: Task.async(fn -> run(%Right{effect: eff}, env) end)
@@ -254,17 +248,12 @@ defmodule FunPark.Monad.Effect do
     end
   end
 
-  # START:validate
+  
   def validate(value, validators) when is_list(validators) do
     traverse_a(validators, fn v -> v.(value) end)
     |> map(fn _ -> value end)
   end
 
-  # END:validate
-
-  # def validate(value, validator, opts) when is_function(validator, 1) do
-  #   validate(value, [validator], opts)
-  # end
 
   def from_result({:ok, v}), do: right(v)
   def from_result({:error, e}), do: left(e)

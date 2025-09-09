@@ -1,0 +1,591 @@
+# Combine with Monoids
+
+```elixir
+Mix.install([
+  {:fun_park, path: "/mnt/funpark_lib"}
+])
+```
+
+## Advanced Functional Programming with Elixir
+
+|                                                                                                    |                                                                                                                                                                              |
+| -------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| <img src="https://www.joekoski.com/assets/images/jkelixir_small.jpg" alt="Book cover" width="120"> | **Interactive Examples from Chapter 4**<br/>[Advanced Functional Programming with Elixir](https://pragprog.com/titles/jkelixir/advanced-functional-programming-with-elixir). |
+
+## Define the Protocol
+
+````markdown
+```elixir
+defprotocol FunPark.Monoid do
+  def empty(monoid)
+  def append(a, b)
+  def wrap(monoid, value)
+  def unwrap(monoid)
+end
+```
+````
+
+## Combine Numbers with Sum
+
+````markdown
+```elixir
+defmodule FunPark.Monoid.Sum do
+  defstruct value: 0
+end
+```
+````
+
+````markdown
+```elixir
+defimpl FunPark.Monoid, for: FunPark.Monoid.Sum do
+  def empty(_), do: %FunPark.Monoid.Sum{value: 0}
+  def append(%{value: a}, %{value: b}), do: %FunPark.Monoid.Sum{value: a + b}
+  def wrap(_, value), do: %FunPark.Monoid.Sum{value: value}
+  def unwrap(%{value: value}), do: value
+end
+```
+````
+
+Use `Monoid.wrap/2` to lift raw values into the monoid context:
+
+```elixir
+sum_1 = FunPark.Monoid.wrap(%FunPark.Monoid.Sum{}, 1)
+```
+
+```elixir
+sum_2 = FunPark.Monoid.wrap(%FunPark.Monoid.Sum{}, 2)
+```
+
+Use `append/2` to combine the values within the context of `Monoid.Sum`:
+
+```elixir
+value = FunPark.Monoid.append(sum_1, sum_2)
+```
+
+And unwrap the final value:
+
+```elixir
+FunPark.Monoid.unwrap(value)
+```
+
+### Appendable
+
+````markdown
+```elixir
+def m_append(monoid, a, b) do
+  monoid
+  |> wrap(a)
+  |> append(wrap(monoid, b))
+  |> unwrap()
+end
+```
+````
+
+Combine `1` and `2`:
+
+```elixir
+FunPark.Monoid.Utils.m_append(%FunPark.Monoid.Sum{}, 1, 2)
+```
+
+### Foldable
+
+````markdown
+```elixir
+defprotocol FunPark.Foldable do
+  def foldl(foldable, fun, acc)
+  def foldr(foldable, fun, acc)
+end
+```
+````
+
+````markdown
+```elixir
+defimpl FunPark.Foldable, for: List do
+  def foldl(list, fun, acc), do: :lists.foldl(fun, acc, list)
+  def foldr(list, fun, acc), do: :lists.foldr(fun, acc, list)
+end
+```
+````
+
+````markdown
+```elixir
+def m_concat(monoid, list) do
+  empty_value = empty(monoid)
+  FunPark.Foldable.foldl(list, &append/2, empty_value)
+  |> unwrap()
+end
+```
+````
+
+### Math
+
+````markdown
+```elixir
+def sum(a, b) when is_number(a) and is_number(b) do
+  Utils.m_append(%Monoid.Sum{}, a, b)
+end
+
+def sum(list) when is_list(list) do
+  Utils.m_concat(%Monoid.Sum{}, list)
+end
+```
+````
+
+Now we can add two `Ride` wait time sensors:
+
+```elixir
+FunPark.Math.sum(1, 2)
+```
+
+And we can add a collection of sensors:
+
+```elixir
+FunPark.Math.sum([1, 2, 3])
+```
+
+Or even a single sensor:
+
+```elixir
+FunPark.Math.sum([3])
+```
+
+And when there are no sensors at all, the monoid still knows what to do:
+
+```elixir
+FunPark.Math.sum([])
+```
+
+## Combine Equality
+
+### Equal All
+
+````markdown
+```elixir
+defmodule FunPark.Monoid.EqAll do
+  defstruct value: true
+end
+```
+````
+
+````markdown
+```elixir
+defimpl FunPark.Monoid, for: FunPark.Monoid.EqAll do
+  def empty(_), do: %FunPark.Monoid.EqAll{value: true}
+  def append(%{value: a}, %{value: b}), do: %FunPark.Monoid.EqAll{value: a && b}
+  def wrap(_, value), do: %FunPark.Monoid.EqAll{value: value}
+  def unwrap(%{value: value}), do: value
+end
+```
+````
+
+````markdown
+```elixir
+def append_all(eq_list) do
+  Utils.contramap(fn {a, b} ->
+    Enum.all?(eq_list, fn eq -> 
+      eq_map = Utils.to_eq_map(eq)
+      eq_map.eq?.(a, b)
+    end)
+  end)
+end
+```
+````
+
+````markdown
+```elixir
+def concat_all(eq_list) do
+  append_all(eq_list)
+end
+```
+````
+
+Create two fast passes that share the same ride and time:
+
+```elixir
+datetime = DateTime.new!(~D[2025-06-01], ~T[13:00:00])
+apple = FunPark.Ride.make("Apple Cart")
+fast_pass_a = FunPark.FastPass.make(apple, datetime)
+fast_pass_b = FunPark.FastPass.make(apple, datetime)
+```
+
+Combine ride and time comparators:
+
+```elixir
+eq_ride = FunPark.FastPass.eq_ride()
+eq_time = FunPark.FastPass.eq_time()
+eq_both = FunPark.Eq.Utils.concat_all([eq_ride, eq_time])
+```
+
+Different IDs make them different:
+
+```elixir
+FunPark.Eq.Utils.eq?(fast_pass_a, fast_pass_b)
+```
+
+```elixir
+FunPark.Eq.Utils.eq?(fast_pass_a, fast_pass_b, eq_ride)
+```
+
+```elixir
+FunPark.Eq.Utils.eq?(fast_pass_a, fast_pass_b, eq_time)
+```
+
+```elixir
+FunPark.Eq.Utils.eq?(fast_pass_a, fast_pass_b, eq_both)
+```
+
+Update the time on `fast_pass_a`:
+
+```elixir
+datetime_2 = DateTime.new!(~D[2025-06-01], ~T[14:00:00])
+fast_pass_a = FunPark.FastPass.change(fast_pass_a, %{time: datetime_2})
+```
+
+Same ride:
+
+```elixir
+FunPark.Eq.Utils.eq?(fast_pass_a, fast_pass_b, eq_ride)
+```
+
+Different time:
+
+```elixir
+FunPark.Eq.Utils.eq?(fast_pass_a, fast_pass_b, eq_time)
+```
+
+Different time and ride:
+
+```elixir
+FunPark.Eq.Utils.eq?(fast_pass_a, fast_pass_b, eq_both)
+```
+
+#### Add to FastPass
+
+````markdown
+```elixir
+def eq_ride_and_time do
+  Eq.Utils.concat_all([eq_ride(), eq_time()])
+end
+```
+````
+
+### Equal Any
+
+````markdown
+```elixir
+defmodule FunPark.Monoid.EqAny do
+  defstruct value: false
+end
+```
+````
+
+````markdown
+```elixir
+defimpl FunPark.Monoid, for: FunPark.Monoid.EqAny do
+  def empty(_), do: %FunPark.Monoid.EqAny{value: false}
+  def append(%{value: a}, %{value: b}), do: %FunPark.Monoid.EqAny{value: a || b}
+  def wrap(_, value), do: %FunPark.Monoid.EqAny{value: value}
+  def unwrap(%{value: value}), do: value
+end
+```
+````
+
+````markdown
+```elixir
+def duplicate_pass do
+  Eq.Utils.concat_any([
+    Eq,
+    eq_ride_and_time()
+  ])
+end
+```
+````
+
+Generate two FastPasses:
+
+```elixir
+datetime = DateTime.new!(~D[2025-06-01], ~T[13:00:00])
+tea_cup = FunPark.Ride.make("Tea Cup")
+
+pass_a = FunPark.FastPass.make(tea_cup, datetime)
+pass_b = FunPark.FastPass.make(tea_cup, datetime)
+```
+
+Different IDs:
+
+```elixir
+FunPark.Eq.Utils.eq?(pass_a, pass_b)
+```
+
+Duplicate check considers them the same:
+
+```elixir
+dup_pass_check = FunPark.FastPass.duplicate_pass()
+FunPark.Eq.Utils.eq?(pass_a, pass_b, dup_pass_check)
+```
+
+Update the first pass to point to a different ride:
+
+```elixir
+mansion = FunPark.Ride.make("Haunted Mansion")
+pass_a_changed = FunPark.FastPass.change(pass_a, %{ride: mansion})
+```
+
+Same ID makes them equal:
+
+```elixir
+FunPark.Eq.Utils.eq?(pass_a, pass_a_changed, dup_pass_check)
+```
+
+Different IDs and rides:
+
+```elixir
+FunPark.Eq.Utils.eq?(pass_b, pass_a_changed, dup_pass_check)
+```
+
+## Combine Order
+
+````markdown
+```elixir
+defmodule FunPark.Monoid.Ord do
+  defstruct lt?: fn _, _ -> false end,
+            le?: fn _, _ -> false end,
+            gt?: fn _, _ -> false end,
+            ge?: fn _, _ -> false end
+end
+```
+````
+
+````markdown
+```elixir
+def empty(_) do
+  %FunPark.Monoid.Ord{}
+end
+
+def append(ord1, ord2) do
+  %FunPark.Monoid.Ord{
+    lt?: fn a, b ->
+      cond do
+        ord1.lt?.(a, b) -> true
+        ord1.gt?.(a, b) -> false
+        true -> ord2.lt?.(a, b)
+      end
+    end,
+    le?: fn a, b ->
+      cond do
+        ord1.lt?.(a, b) -> true
+        ord1.gt?.(a, b) -> false
+        true -> ord2.le?.(a, b)
+      end
+    end,
+    gt?: fn a, b ->
+      cond do
+        ord1.gt?.(a, b) -> true
+        ord1.lt?.(a, b) -> false
+        true -> ord2.gt?.(a, b)
+      end
+    end,
+    ge?: fn a, b ->
+      cond do
+        ord1.gt?.(a, b) -> true
+        ord1.lt?.(a, b) -> false
+        true -> ord2.ge?.(a, b)
+      end
+    end
+  }
+end
+```
+````
+
+````markdown
+```elixir
+def append(ord1, ord2) do
+  Utils.m_append(%Monoid.Ord{}, ord1, ord2)
+end
+
+def concat(ord_list) do
+  Utils.m_concat(%Monoid.Ord{}, ord_list)
+end
+```
+````
+
+Create the patrons Alice, Beth, and Charles:
+
+```elixir
+alice = FunPark.Patron.make(
+  "Alice", 15, 50, reward_points: 50, ticket_tier: :premium
+)
+beth = FunPark.Patron.make(
+  "Beth", 16, 55, reward_points: 20, ticket_tier: :vip
+)
+charles = FunPark.Patron.make(
+  "Charles", 14, 60, reward_points: 50, ticket_tier: :premium
+)
+```
+
+Default sort is alphabetical by name:
+
+```elixir
+FunPark.List.sort([charles, beth, alice])
+```
+
+Priority sort by ticket tier and reward points:
+
+```elixir
+ord_ticket = FunPark.Patron.ord_by_ticket_tier()
+ord_reward_points = FunPark.Patron.ord_by_reward_points()
+ord_priority = FunPark.Ord.Utils.concat([ord_ticket, ord_reward_points])
+FunPark.List.sort([charles, beth, alice], ord_priority)
+```
+
+Add name as tie-breaker:
+
+```elixir
+ord_priority = FunPark.Ord.Utils.concat(
+  [ord_ticket, ord_reward_points, FunPark.Ord]
+)
+
+FunPark.List.sort([charles, beth, alice], ord_priority)
+```
+
+````markdown
+```elixir
+def ord_by_priority do
+  Ord.Utils.concat([
+    ord_by_ticket_tier(),
+    ord_by_reward_points(),
+    Ord
+  ])
+end
+```
+````
+
+## Generalize Maximum
+
+````markdown
+```elixir
+defmodule FunPark.Monoid.Max do
+  defstruct value: nil, ord: FunPark.Ord
+end
+```
+````
+
+````markdown
+```elixir
+def empty(%{value: identity}), do: %FunPark.Monoid.Max{value: identity}
+
+def append(%{value: a, ord: ord}, %{value: b}) do
+  %FunPark.Monoid.Max{value: Ord.Utils.max(a, b, ord), ord: ord}
+end
+
+def wrap(monoid, value), do: %{monoid | value: value}
+def unwrap(%{value: value}), do: value
+```
+````
+
+````markdown
+```elixir
+def max(a, b) when is_number(a) and is_number(b) do
+  identity = %Monoid.Max{value: Float.min_finite()}
+  Utils.m_append(identity, a, b)
+end
+
+def max(list) when is_list(list) do
+  identity = %Monoid.Max{value: Float.min_finite()}
+  Utils.m_concat(identity, list)
+end
+```
+````
+
+Find the larger of two numbers:
+
+```elixir
+FunPark.Math.max(1, 2)
+```
+
+And `max/1` solves our `Ride` expert's daily report from a ride's wait time log:
+
+```elixir
+log = [20, 30, 10, 20, 15, 10, 20]
+FunPark.Math.max(log)
+```
+
+Like all Monoids, `Max` also works with a single value:
+
+```elixir
+FunPark.Math.max([3])
+```
+
+And for an empty list, it returns the identity—in this case, Elixir's smallest possible number:
+
+```elixir
+FunPark.Math.max([])
+```
+
+### Prioritize a Patron
+
+````markdown
+```elixir
+def priority_empty do
+  %__MODULE__{
+    id: nil,
+    name: nil,
+    ticket_tier: nil,
+    reward_points: Float.min_finite(),
+    age: 0,
+    height: 0,
+    fast_passes: [],
+    likes: [],
+    dislikes: []
+  }
+end
+```
+````
+
+````markdown
+```elixir
+def max_priority_monoid do
+  %FunPark.Monoid.Max{
+    value: priority_empty(),
+    ord: ord_by_priority()
+  }
+end
+```
+````
+
+````markdown
+```elixir
+def highest_priority(patrons) do
+  FunPark.Monoid.Utils.m_concat(max_priority_monoid(), patrons)
+end
+```
+````
+
+Beth has more reward points:
+
+```elixir
+alice = FunPark.Patron.make("Alice", 15, 150)
+beth = FunPark.Patron.make("Beth", 15, 150, reward_points: 100)
+
+FunPark.Patron.highest_priority([beth, alice])
+```
+
+Alice upgrades to VIP:
+
+```elixir
+alice = FunPark.Patron.change(alice, %{ticket_tier: :vip})
+
+FunPark.Patron.highest_priority([beth, alice])
+```
+
+The Max Monoid also works when there is only a single patron in the list:
+
+```elixir
+FunPark.Patron.highest_priority([beth])
+```
+
+If there are no patrons, the sentinel value is returned:
+
+```elixir
+FunPark.Patron.highest_priority([])
+```

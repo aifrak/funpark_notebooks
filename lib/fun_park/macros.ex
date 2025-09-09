@@ -1,5 +1,12 @@
+#---
+# Excerpted from "Advanced Functional Programming with Monads in Elixir",
+# published by The Pragmatic Bookshelf.
+# Copyrights apply to this code. It may not be used to create training material,
+# courses, books, articles, and the like. Contact us if you are in doubt.
+# We make no guarantees that this code is fit for any purpose.
+# Visit https://pragprog.com/titles/jkelixir for more book information.
+#---
 defmodule FunPark.Macros do
-  # START:eq_for
   defmacro eq_for(for_struct, field) do
     quote do
       alias FunPark.Eq
@@ -20,9 +27,6 @@ defmodule FunPark.Macros do
     end
   end
 
-  # END:eq_for
-
-  # START:ord_for
   defmacro ord_for(for_struct, field) do
     quote do
       alias FunPark.Ord
@@ -54,6 +58,4 @@ defmodule FunPark.Macros do
       end
     end
   end
-
-  # END:ord_for
 end

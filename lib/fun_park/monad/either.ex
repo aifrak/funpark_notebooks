@@ -1,3 +1,11 @@
+#---
+# Excerpted from "Advanced Functional Programming with Monads in Elixir",
+# published by The Pragmatic Bookshelf.
+# Copyrights apply to this code. It may not be used to create training material,
+# courses, books, articles, and the like. Contact us if you are in doubt.
+# We make no guarantees that this code is fit for any purpose.
+# Visit https://pragprog.com/titles/jkelixir for more book information.
+#---
 defmodule FunPark.Monad.Either do
   import FunPark.Appendable, only: [append: 2, coerce: 1]
   import FunPark.Monad, only: [map: 2]
@@ -7,22 +15,16 @@ defmodule FunPark.Monad.Either do
   alias FunPark.Eq
   alias FunPark.Ord
 
-  # START:constructors
   def right(value), do: Right.pure(value)
   def left(value), do: Left.pure(value)
   def pure(value), do: right(value)
-  # END:constructors
 
-  # START:refinements
   def right?(%Right{}), do: true
   def right?(_), do: false
 
   def left?(%Left{}), do: true
   def left?(_), do: false
 
-  # END:refinements
-
-  # START:filter_or_else
   def filter_or_else(either, predicate, left_func) do
     fold_l(
       either,
@@ -37,9 +39,6 @@ defmodule FunPark.Monad.Either do
     )
   end
 
-  # END:filter_or_else
-
-  # START:get_or_else
   def get_or_else(either, default) do
     fold_l(
       either,
@@ -48,14 +47,9 @@ defmodule FunPark.Monad.Either do
     )
   end
 
-  # END:get_or_else
-
-  # START:or_else
   def or_else(%Left{}, fallback_fun) when is_function(fallback_fun, 0), do: fallback_fun.()
   def or_else(%Right{} = right, _), do: right
-  # END:or_else
 
-  # START:lift_eq
   def lift_eq(custom_eq) do
     custom_eq = Eq.Utils.to_eq_map(custom_eq)
 
@@ -73,9 +67,6 @@ defmodule FunPark.Monad.Either do
     }
   end
 
-  # END:lift_eq
-
-  # START:lift_ord
   def lift_ord(custom_ord) do
     custom_ord = Ord.Utils.to_ord_map(custom_ord)
 
@@ -107,17 +98,12 @@ defmodule FunPark.Monad.Either do
     }
   end
 
-  # END:lift_ord
-
-  # START:map_left
   def map_left(%Left{left: error}, func), do: left(func.(error))
   def map_left(%Right{} = right, _), do: right
-  # END:map_left
 
   def flip(%Left{left: l}), do: %Right{right: l}
   def flip(%Right{right: r}), do: %Left{left: r}
 
-  # START:concat
   def concat(list) do
     list
     |> fold_l([], fn
@@ -127,9 +113,6 @@ defmodule FunPark.Monad.Either do
     |> :lists.reverse()
   end
 
-  # END:concat
-
-  # START:concat_map
   def concat_map(list, func) do
     list
     |> fold_l([], fn item, acc ->
@@ -141,13 +124,8 @@ defmodule FunPark.Monad.Either do
     |> :lists.reverse()
   end
 
-  # END:concat_map
-
-  # START:sequence
   def sequence(list), do: traverse(list, & &1)
-  # END:sequence
 
-  # START:traverse
   def traverse([], _func), do: pure([])
 
   def traverse(list, func) do
@@ -160,13 +138,8 @@ defmodule FunPark.Monad.Either do
     |> map(&:lists.reverse/1)
   end
 
-  # END:traverse
-
-  # START:sequence_a
   def sequence_a(list), do: traverse_a(list, & &1)
-  # END:sequence_a
 
-  # START:traverse_a
   def traverse_a([], _func), do: right([])
 
   def traverse_a(list, func) when is_list(list) and is_function(func, 1) do
@@ -188,24 +161,15 @@ defmodule FunPark.Monad.Either do
     |> map(&:lists.reverse/1)
   end
 
-  # END:traverse_a
-
-  # START:validate
-  # START:validate_list
   def validate(value, validators) when is_list(validators) do
     traverse_a(validators, fn validator -> validator.(value) end)
     |> map(fn _ -> value end)
   end
 
-  # END:validate_list
-
   def validate(value, validator) when is_function(validator, 1) do
     validate(value, [validator])
   end
 
-  # END:validate
-
-  # START:lift_maybe
   def lift_maybe(maybe, on_none)
       when is_struct(maybe, Just) or
              is_struct(maybe, Nothing) do
@@ -216,9 +180,6 @@ defmodule FunPark.Monad.Either do
     )
   end
 
-  # END:lift_maybe
-
-  # START:lift_predicate
   def lift_predicate(value, predicate, on_false)
       when is_function(predicate, 1) and is_function(on_false, 1) do
     fold_l(
@@ -228,14 +189,9 @@ defmodule FunPark.Monad.Either do
     )
   end
 
-  # END:lift_predicate
-
-  # START:from_result
   def from_result({:ok, value}), do: right(value)
   def from_result({:error, reason}), do: left(reason)
-  # END:from_result
 
-  # START:to_result
   def to_result(either)
       when is_struct(either, Right) or
              is_struct(either, Left) do
@@ -245,9 +201,6 @@ defmodule FunPark.Monad.Either do
     end
   end
 
-  # END:to_result
-
-  # START:from_try
   def from_try(func) do
     try do
       result = func.()
@@ -258,9 +211,6 @@ defmodule FunPark.Monad.Either do
     end
   end
 
-  # END:from_try
-
-  # START:to_try
   def to_try!(%Right{right: value}), do: value
 
   def to_try!(%Left{left: reason}) do
@@ -275,5 +225,4 @@ defmodule FunPark.Monad.Either do
   defp normalize_reason(reason) when is_binary(reason), do: reason
 
   defp normalize_reason(reason), do: "Unexpected error: #{inspect(reason)}"
-  # END:to_try
 end

@@ -1,0 +1,905 @@
+# Coordinate Tasks with Effect
+
+```elixir
+Mix.install([
+  {:fun_park, path: "/mnt/funpark_lib"}
+])
+```
+
+## Advanced Functional Programming with Elixir
+
+|                                                                                                    |                                                                                                                                                                               |
+| -------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| <img src="https://www.joekoski.com/assets/images/jkelixir_small.jpg" alt="Book cover" width="120"> | **Interactive Examples from Chapter 10**<br/>[Advanced Functional Programming with Elixir](https://pragprog.com/titles/jkelixir/advanced-functional-programming-with-elixir). |
+
+## Build the Effect
+
+````markdown
+```elixir
+def pure(value) do
+  %__MODULE__{
+    effect: fn _env ->
+      Task.async(fn -> Either.Right.pure(value) end)
+    end
+  }
+end
+```
+````
+
+````markdown
+```elixir
+def pure(value) do
+  %__MODULE__{
+    effect: fn _env ->
+      Task.async(fn -> Either.Left.pure(value) end)
+    end
+  }
+end
+```
+````
+
+````markdown
+```elixir
+def run(effect, env \\ %{}) do
+  effect.effect.(env)
+  |> execute_effect()
+end
+```
+````
+
+Let's start with a basic Effect, wrapping the number 40:
+
+```elixir
+effect = FunPark.Monad.Effect.pure(40)
+```
+
+If we run it:
+
+```elixir
+FunPark.Monad.Effect.run(effect)
+```
+
+An Elixir Task can fail. For example, we can create an Effect that contains a bomb to crash the underlying process:
+
+```elixir
+bomb = fn -> raise "boom" end
+bomb_effect = FunPark.Monad.Effect.lift_func(bomb)
+```
+
+If we run it:
+
+```elixir
+FunPark.Monad.Effect.run(bomb_effect)
+```
+
+An Effect can also fail by timing out. Here is an Effect that takes 6 seconds, one more than our Task default:
+
+```elixir
+long_delay = fn -> Process.sleep(6000) end
+long_delay_effect = FunPark.Monad.Effect.lift_func(long_delay)
+```
+
+And if we run this long task:
+
+```elixir
+FunPark.Monad.Effect.run(long_delay_effect)
+```
+
+## Deferred Transformation
+
+````markdown
+```elixir
+def map(%__MODULE__{effect: effect_fn}, function) do
+  %__MODULE__{
+    effect: fn env ->
+      Task.async(fn ->
+        effect_fn.(env)
+        |> Task.await()
+        |> case do
+          %Either.Right{right: value} ->
+            try do
+              Either.Right.pure(function.(value))
+            rescue
+              e -> Either.Left.pure(EffectError.new(:map, e))
+            end
+          
+          %Either.Left{} = left -> left
+        end
+      end)
+    end
+  }
+end
+```
+````
+
+````markdown
+```elixir
+def map(%__MODULE__{effect: effect_fn}, _function) do
+  %__MODULE__{effect: effect_fn}
+end
+```
+````
+
+Let's start with the Effect that, when run, returns the value 5:
+
+```elixir
+five_effect = FunPark.Monad.Effect.pure(5)
+```
+
+And a simple function that adds one to the value submitted:
+
+```elixir
+increment = fn v -> v + 1 end
+```
+
+We can compose a new Effect by mapping increment/1 to five_effect:
+
+```elixir
+six_effect = five_effect |> FunPark.Monad.map(increment)
+```
+
+Now, when we run it in a protected boundary:
+
+```elixir
+FunPark.Monad.Effect.run(six_effect)
+```
+
+Let's see what happens when we start with the letter "A":
+
+```elixir
+alpha_effect = FunPark.Monad.Effect.pure("A")
+```
+
+And compose it with increment/1:
+
+```elixir
+error_effect = alpha_effect |> FunPark.Monad.map(increment)
+```
+
+When we execute it in our controlled boundary:
+
+```elixir
+FunPark.Monad.Effect.run(error_effect)
+```
+
+Let's lift increment/1:
+
+```elixir
+increment_effect = FunPark.Monad.Effect.from_try(increment)
+```
+
+And how do we compose with a Kleisli function? Use bind/2:
+
+```elixir
+error_effect_bind = alpha_effect |> FunPark.Monad.bind(increment_effect)
+```
+
+And now, when we run it:
+
+```elixir
+FunPark.Monad.Effect.run(error_effect_bind)
+```
+
+I/O typically takes time, so let's simulate this with a half-second delay:
+
+```elixir
+delay = fn value -> Process.sleep(500); value end
+```
+
+and map it to our six_effect:
+
+```elixir
+long_six_effect = six_effect |> FunPark.Monad.map(delay)
+```
+
+And when we run it in our protected boundary:
+
+```elixir
+FunPark.Monad.Effect.run(long_six_effect)
+```
+
+## Effectful Store
+
+````markdown
+```elixir
+def add(%Ride{} = ride, table_name) when is_atom(table_name) do
+  Effect.lift_either(fn ->
+    Process.sleep(500)
+    Store.insert_item(ride, table_name)
+  end)
+end
+```
+````
+
+````markdown
+```elixir
+def get(%Ride{id: id}, table_name) when is_atom(table_name) do
+  Effect.lift_either(fn ->
+    Process.sleep(500)
+    case Store.get_item(id, table_name) do
+      %Either.Right{right: data} -> Either.Right.pure(struct(Ride, data))
+      %Either.Left{} = left -> left
+    end
+  end)
+end
+```
+````
+
+````markdown
+```elixir
+def remove(%Ride{id: id}, table_name) when is_atom(table_name) do
+  Effect.lift_either(fn ->
+    Process.sleep(500)
+    Store.delete_item(id, table_name)
+  end)
+end
+```
+````
+
+Let's start by adding a :schedule table to our ETS store:
+
+```elixir
+FunPark.Store.create_table(:schedule)
+```
+
+Then generate the Apple Cart ride:
+
+```elixir
+apple = FunPark.Ride.make("Apple Cart")
+```
+
+And create the effects for managing the Apple Cart:
+
+```elixir
+save_effect = FunPark.Maintenance.Store.add(apple, :schedule)
+get_effect = FunPark.Maintenance.Store.get(apple, :schedule)
+remove_effect = FunPark.Maintenance.Store.remove(apple, :schedule)
+```
+
+We can run the save Effect:
+
+```elixir
+FunPark.Monad.Effect.run(save_effect)
+```
+
+If we ask the store for Apple Cart:
+
+```elixir
+FunPark.Monad.Effect.run(get_effect)
+```
+
+Now, if we remove Apple Cart:
+
+```elixir
+FunPark.Monad.Effect.run(remove_effect)
+```
+
+And if we rerun the get_effect:
+
+```elixir
+FunPark.Monad.Effect.run(get_effect)
+```
+
+We can also drop the entire table:
+
+```elixir
+FunPark.Store.drop_table(:schedule)
+```
+
+And when we run the get Effect again:
+
+```elixir
+FunPark.Monad.Effect.run(get_effect)
+```
+
+## Maintenance Repository
+
+````markdown
+```elixir
+def create_store do
+  tables = [:schedule, :unschedule, :lockout, :compliance]
+  
+  tables
+  |> Enum.map(&Store.create_table/1)
+  |> Either.sequence_a()
+end
+```
+````
+
+Success is represented by Right with the list of successfully created tables:
+
+```elixir
+FunPark.Maintenance.Repo.create_store()
+```
+
+But if we run it again:
+
+```elixir
+FunPark.Maintenance.Repo.create_store()
+```
+
+````markdown
+```elixir
+def validate_ride_effect(%Ride{} = ride) do
+  Effect.lift_either(fn -> Ride.validate(ride) end)
+end
+```
+````
+
+````markdown
+```elixir
+def add_to_store_effect(%Ride{} = ride) do
+  Effect.asks(fn %{table: table_name} ->
+    Maintenance.Store.add(ride, table_name)
+  end)
+  |> Effect.bind(& &1)
+end
+```
+````
+
+````markdown
+```elixir
+def add_ride_effect(%Ride{} = ride) do
+  ride
+  |> validate_ride_effect()
+  |> Monad.bind(&add_to_store_effect/1)
+end
+```
+````
+
+Let's start by creating our store and making a ride:
+
+```elixir
+FunPark.Maintenance.Repo.create_store()
+apple = FunPark.Ride.make("Apple Cart")
+```
+
+Next, create an Effect to add the Apple Cart to scheduled maintenance:
+
+```elixir
+effect = FunPark.Maintenance.Repo.add_ride_effect(apple)
+```
+
+And finally execute our Effect with the table name:
+
+```elixir
+FunPark.Monad.Effect.run(effect, %{table: :schedule})
+```
+
+````markdown
+```elixir
+def add_schedule(%Ride{} = ride) do
+  ride
+  |> add_ride_effect()
+  |> Effect.run(%{table: :schedule})
+end
+```
+````
+
+Let's modify the Apple Cart with an invalid wait time:
+
+```elixir
+invalid_apple = FunPark.Ride.change(apple, %{wait_time: -10})
+```
+
+Now, when we try to save it:
+
+```elixir
+FunPark.Maintenance.Repo.add_schedule(invalid_apple)
+```
+
+If we delete the underlying table:
+
+```elixir
+FunPark.Store.drop_table(:schedule)
+```
+
+And pass it a valid ride:
+
+```elixir
+FunPark.Maintenance.Repo.add_schedule(apple)
+```
+
+````markdown
+```elixir
+def add_unschedule(%Ride{} = ride) do
+  ride |> add_ride_effect() |> Effect.run(%{table: :unschedule})
+end
+
+def add_lockout(%Ride{} = ride) do
+  ride |> add_ride_effect() |> Effect.run(%{table: :lockout})
+end
+
+def add_compliance(%Ride{} = ride) do
+  ride |> add_ride_effect() |> Effect.run(%{table: :compliance})
+end
+```
+````
+
+````markdown
+```elixir
+def add_to_all(%Ride{} = ride) do
+  ride
+  |> Maintenance.Repo.add_schedule()
+  |> Monad.bind(fn _ -> Maintenance.Repo.add_unschedule(ride) end)
+  |> Monad.bind(fn _ -> Maintenance.Repo.add_lockout(ride) end)
+  |> Monad.bind(fn _ -> Maintenance.Repo.add_compliance(ride) end)
+end
+```
+````
+
+Let's start by generating a ride and making sure the store has all the tables:
+
+```elixir
+apple = FunPark.Ride.make("Apple Cart")
+FunPark.Maintenance.Repo.create_store()
+```
+
+Now we can add our ride to all the maintenance tables:
+
+```elixir
+FunPark.Maintenance.add_to_all(apple)
+```
+
+````markdown
+```elixir
+def remove_from_store_effect(%Ride{} = ride) do
+  Effect.asks(fn %{table: table_name} ->
+    Maintenance.Store.remove(ride, table_name)
+  end)
+  |> Effect.bind(& &1)
+end
+```
+````
+
+````markdown
+```elixir
+def remove_ride_effect(%Ride{} = ride) do
+  ride
+  |> validate_ride_effect()
+  |> Monad.bind(&remove_from_store_effect/1)
+  |> Monad.map(fn _ -> ride end)
+end
+```
+````
+
+````markdown
+```elixir
+def remove_schedule(%Ride{} = ride) do
+  ride |> remove_ride_effect() |> Effect.run(%{table: :schedule})
+end
+
+def remove_unschedule(%Ride{} = ride) do
+  ride |> remove_ride_effect() |> Effect.run(%{table: :unschedule})
+end
+
+def remove_lockout(%Ride{} = ride) do
+  ride |> remove_ride_effect() |> Effect.run(%{table: :lockout})
+end
+
+def remove_compliance(%Ride{} = ride) do
+  ride |> remove_ride_effect() |> Effect.run(%{table: :compliance})
+end
+```
+````
+
+````markdown
+```elixir
+def remove_from_all(%Ride{} = ride) do
+  operations = [
+    &Maintenance.Repo.remove_schedule/1,
+    &Maintenance.Repo.remove_unschedule/1,
+    &Maintenance.Repo.remove_lockout/1,
+    &Maintenance.Repo.remove_compliance/1
+  ]
+  
+  operations
+  |> Either.traverse_a(& &1.(ride))
+  |> Monad.map(fn _ -> ride end)
+end
+```
+````
+
+First, let's create our store and make an Apple Cart ride:
+
+```elixir
+FunPark.Maintenance.Repo.create_store()
+apple = FunPark.Ride.make("Apple Cart")
+```
+
+We can add the Apple Cart to all maintenance tables:
+
+```elixir
+FunPark.Maintenance.add_to_all(apple)
+```
+
+and remove it as well:
+
+```elixir
+FunPark.Maintenance.remove_from_all(apple)
+```
+
+But if we create an invalid Apple Cart:
+
+```elixir
+invalid_apple = FunPark.Ride.change(apple, %{wait_time: -10})
+```
+
+The difference matters, adding Apple Cart to all our tables will stop at the first error:
+
+```elixir
+FunPark.Maintenance.add_to_all(invalid_apple)
+```
+
+But removing it will attempt all removals independently, returning a list of validation errors:
+
+```elixir
+FunPark.Maintenance.remove_from_all(invalid_apple)
+```
+
+Now let's try a valid ride with a broken store:
+
+```elixir
+FunPark.Store.drop_table(:schedule)
+```
+
+With add_to_all/1, the internal bind/2 will halt on the first error:
+
+```elixir
+FunPark.Maintenance.add_to_all(apple)
+```
+
+But remove_from_all/1, uses sequence_a/1, and will independently run all removal effects:
+
+```elixir
+FunPark.Maintenance.remove_from_all(apple)
+```
+
+## Inject Behavior, Not Configuration
+
+````markdown
+```elixir
+def add_ride_effect(%Ride{} = ride) do
+  ride
+  |> validate_ride_effect()
+  |> Monad.bind(&add_to_store_effect/1)
+end
+```
+````
+
+````markdown
+```elixir
+def has_ride_effect(%Ride{} = ride) do
+  Effect.asks(fn %{store: store, table: table_name} ->
+    store.get(ride, table_name)
+  end)
+  |> Effect.bind(& &1)
+end
+```
+````
+
+````markdown
+```elixir
+def in_schedule(%Ride{} = ride) do
+  has_ride_effect(ride)
+  |> Effect.map_env(fn env -> Map.put(env, :table, :schedule) end)
+end
+
+def in_unschedule(%Ride{} = ride) do
+  has_ride_effect(ride)
+  |> Effect.map_env(fn env -> Map.put(env, :table, :unschedule) end)
+end
+
+def in_lockout(%Ride{} = ride) do
+  has_ride_effect(ride)
+  |> Effect.map_env(fn env -> Map.put(env, :table, :lockout) end)
+end
+
+def in_compliance(%Ride{} = ride) do
+  has_ride_effect(ride)
+  |> Effect.map_env(fn env -> Map.put(env, :table, :compliance) end)
+end
+```
+````
+
+Again, let's create the store and make an Apple Cart ride:
+
+```elixir
+FunPark.Maintenance.Repo.create_store()
+apple = FunPark.Ride.make("Apple Cart")
+```
+
+Next, generate an Effect to check if it is in scheduled maintenance:
+
+```elixir
+effect = FunPark.Maintenance.Repo.in_schedule(apple)
+```
+
+and create the environment with our Store:
+
+```elixir
+env = %{store: FunPark.Maintenance.Store}
+```
+
+When we run the Effect in the environment:
+
+```elixir
+FunPark.Monad.Effect.run(effect, env)
+```
+
+But if we add Apple Cart to scheduled maintenance:
+
+```elixir
+FunPark.Maintenance.Repo.add_schedule(apple)
+```
+
+and rerun our Effect:
+
+```elixir
+FunPark.Monad.Effect.run(effect, env)
+```
+
+````markdown
+```elixir
+def check_in_all(%Ride{} = ride) do
+  env = %{store: Maintenance.Store}
+  
+  ride
+  |> Maintenance.Repo.in_schedule()
+  |> Monad.bind(&Maintenance.Repo.in_unschedule/1)
+  |> Monad.bind(&Maintenance.Repo.in_lockout/1)
+  |> Monad.bind(&Maintenance.Repo.in_compliance/1)
+  |> Effect.run(env)
+end
+```
+````
+
+We start by creating our store and generating a new ride:
+
+```elixir
+FunPark.Maintenance.Repo.create_store()
+apple = FunPark.Ride.make("Apple Cart")
+```
+
+Since nothing has been added yet, check_in_all/1 fails with a Left:
+
+```elixir
+FunPark.Maintenance.check_in_all(apple)
+```
+
+If we add the ride to all four maintenance tables:
+
+```elixir
+FunPark.Maintenance.add_to_all(apple)
+```
+
+And rerun check_in_all/1:
+
+```elixir
+FunPark.Maintenance.check_in_all(apple)
+```
+
+We remove it from our :lockout table:
+
+```elixir
+FunPark.Maintenance.Repo.remove_lockout(apple)
+```
+
+Once again, if we run our check_in_all/1:
+
+```elixir
+FunPark.Maintenance.check_in_all(apple)
+```
+
+## Flip the Logic
+
+````markdown
+```elixir
+def assert_absent_effect(%Ride{} = ride, check_fn) do
+  ride
+  |> check_fn.()
+  |> Effect.flip_either()
+  |> Effect.bind(&right_if_absent/1)
+  |> Effect.map_left(&replace_ride_with_reason/1)
+end
+```
+````
+
+````markdown
+```elixir
+def not_in_schedule(%Ride{} = ride) do
+  assert_absent_effect(ride, &in_schedule/1)
+end
+
+def not_in_unschedule(%Ride{} = ride) do
+  assert_absent_effect(ride, &in_unschedule/1)
+end
+
+def not_in_lockout(%Ride{} = ride) do
+  assert_absent_effect(ride, &in_lockout/1)
+end
+
+def not_in_compliance(%Ride{} = ride) do
+  assert_absent_effect(ride, &in_compliance/1)
+end
+```
+````
+
+````markdown
+```elixir
+def check_online_bind(%Ride{} = ride) do
+  env = %{store: Maintenance.Store}
+  
+  ride
+  |> Maintenance.Repo.not_in_schedule()
+  |> Monad.bind(&Maintenance.Repo.not_in_unschedule/1)
+  |> Monad.bind(&Maintenance.Repo.not_in_lockout/1)
+  |> Monad.bind(&Maintenance.Repo.not_in_compliance/1)
+  |> Effect.run(env)
+end
+```
+````
+
+Again, start by creating the store and a ride:
+
+```elixir
+FunPark.Maintenance.Repo.create_store()
+apple = FunPark.Ride.make("Apple Cart")
+```
+
+And let's clean up the store to be certain Apple Cart is not saved:
+
+```elixir
+FunPark.Maintenance.remove_from_all(apple)
+```
+
+Then check whether it's online:
+
+```elixir
+FunPark.Maintenance.check_online_bind(apple)
+```
+
+Now let's add it back to all the tables:
+
+```elixir
+FunPark.Maintenance.add_to_all(apple)
+```
+
+When we run the check again, we get an answer in just half a second:
+
+```elixir
+FunPark.Maintenance.check_online_bind(apple)
+```
+
+````markdown
+```elixir
+def online?(%Ride{} = ride) do
+  ride |> check_online() |> Either.right?()
+end
+```
+````
+
+````markdown
+```elixir
+def online?(%Ride{} = ride) do
+  ride |> Maintenance.check_online() |> Either.right?()
+end
+```
+````
+
+````markdown
+```elixir
+def ensure_online(%FunPark.Ride{online: false} = ride) do
+  Left.pure(ValidationError.new("#{ride.name} is offline"))
+end
+
+def ensure_online(ride), do: Right.pure(ride)
+```
+````
+
+````markdown
+```elixir
+def ensure_online(%Ride{} = ride) do
+  case Maintenance.check_online(ride) do
+    %Either.Right{} -> Either.Right.pure(ride)
+    %Either.Left{left: reason} -> Either.Left.pure(ValidationError.new(reason))
+  end
+end
+```
+````
+
+````markdown
+```elixir
+def check_online(%Ride{} = ride) do
+  env = %{store: Maintenance.Store}
+  validators = [
+    &Maintenance.Repo.not_in_schedule/1,
+    &Maintenance.Repo.not_in_unschedule/1,
+    &Maintenance.Repo.not_in_lockout/1,
+    &Maintenance.Repo.not_in_compliance/1
+  ]
+  
+  Effect.validate(ride, validators)
+  |> Effect.run(env)
+end
+```
+````
+
+Let's clean up by removing Apple Cart from every table:
+
+```elixir
+FunPark.Maintenance.remove_from_all(apple)
+```
+
+And check whether it's online:
+
+```elixir
+FunPark.Maintenance.check_online(apple)
+```
+
+And if we add it back to all the tables:
+
+```elixir
+FunPark.Maintenance.add_to_all(apple)
+```
+
+When we run the check:
+
+```elixir
+FunPark.Maintenance.check_online(apple)
+```
+
+````markdown
+```elixir
+def validate_fast_pass_lane_b(patron, ride) do
+  patron
+  |> validate_eligibility(ride)
+  |> Monad.bind(&ensure_vip_or_fast_pass(&1, ride))
+  |> Monad.bind(fn validated_patron ->
+    case Maintenance.ensure_online(ride) do
+      %Either.Right{} -> Either.Right.pure(validated_patron)
+      %Either.Left{} = left -> left
+    end
+  end)
+end
+```
+````
+
+First, let's make sure our store is created, and generate a couple of patrons and a ride:
+
+```elixir
+FunPark.Maintenance.Repo.create_store()
+
+beth = FunPark.Patron.make("Beth", 16, 115)
+elsie = FunPark.Patron.make("Elsie", 17, 135, ticket_tier: :vip)
+
+haunted_mansion = FunPark.Ride.make(
+  "Haunted Mansion", 
+  min_age: 14, 
+  min_height: 120
+)
+```
+
+And check if Beth can enter the fast pass lane:
+
+```elixir
+FunPark.Ride.FastLane.validate_fast_pass_lane_b(beth, haunted_mansion)
+```
+
+Let's check Elsie:
+
+```elixir
+FunPark.Ride.FastLane.validate_fast_pass_lane_b(elsie, haunted_mansion)
+```
+
+Later, the Haunted Mansion throws a fault and triggers a lockout:
+
+```elixir
+FunPark.Maintenance.Repo.add_lockout(haunted_mansion)
+```
+
+Now, when we check Elsie:
+
+```elixir
+FunPark.Ride.FastLane.validate_fast_pass_lane_b(elsie, haunted_mansion)
+```

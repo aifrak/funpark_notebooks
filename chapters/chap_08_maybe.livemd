@@ -1,0 +1,1049 @@
+# Manage Absence with Maybe
+
+```elixir
+Mix.install([
+  {:fun_park, path: "/mnt/funpark_lib"}
+])
+```
+
+## Advanced Functional Programming with Elixir
+
+|                                                                                                    |                                                                                                                                                                              |
+| -------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| <img src="https://www.joekoski.com/assets/images/jkelixir_small.jpg" alt="Book cover" width="120"> | **Interactive Examples from Chapter 8**<br/>[Advanced Functional Programming with Elixir](https://pragprog.com/titles/jkelixir/advanced-functional-programming-with-elixir). |
+
+## Build the Structures
+
+### Just
+
+````markdown
+```elixir
+defmodule FunPark.Monad.Maybe.Just do
+  defstruct [:value]
+
+  def pure(nil), do: raise ArgumentError, "Just cannot contain nil"
+  def pure(value), do: %__MODULE__{value: value}
+end
+```
+````
+
+### Nothing
+
+````markdown
+```elixir
+defmodule FunPark.Monad.Maybe.Nothing do
+  defstruct []
+
+  def pure(), do: %__MODULE__{}
+end
+```
+````
+
+### Maybe
+
+````markdown
+```elixir
+defmodule FunPark.Monad.Maybe do
+  alias FunPark.Monad.Maybe.{Just, Nothing}
+
+  def just(value), do: Just.pure(value)
+  def nothing(), do: Nothing.pure()
+  def pure(value), do: Just.pure(value)
+
+  def just?(%Just{}), do: true
+  def just?(%Nothing{}), do: false
+
+  def nothing?(%Nothing{}), do: true
+  def nothing?(%Just{}), do: false
+end
+```
+````
+
+Let's start with one value from each branch:
+
+```elixir
+just_a = FunPark.Monad.Maybe.just("A")
+```
+
+```elixir
+nothing = FunPark.Monad.Maybe.nothing()
+```
+
+We can determine which branch we're in using a refinement:
+
+```elixir
+FunPark.Monad.Maybe.just?(just_a)
+```
+
+```elixir
+FunPark.Monad.Maybe.nothing?(just_a)
+```
+
+## Fold Branches
+
+````markdown
+```elixir
+defimpl FunPark.Foldable, for: FunPark.Monad.Maybe.Just do
+  def fold_l(%FunPark.Monad.Maybe.Just{value: value}, just_fn, _nothing_fn),
+    do: just_fn.(value)
+
+  def fold_r(%FunPark.Monad.Maybe.Just{value: value}, just_fn, _nothing_fn),
+    do: just_fn.(value)
+end
+```
+````
+
+````markdown
+```elixir
+defimpl FunPark.Foldable, for: FunPark.Monad.Maybe.Nothing do
+  def fold_l(%FunPark.Monad.Maybe.Nothing{}, _just_fn, nothing_fn), do: nothing_fn.()
+  def fold_r(%FunPark.Monad.Maybe.Nothing{}, _just_fn, nothing_fn), do: nothing_fn.()
+end
+```
+````
+
+Let's return to our `Ride` expert's sensor problem:
+
+```elixir
+good = FunPark.Monad.Maybe.just(10)
+```
+
+```elixir
+bad = FunPark.Monad.Maybe.nothing()
+```
+
+Then fold to extract the result:
+
+```elixir
+FunPark.Foldable.fold_l(good, &"Sensor: #{&1}", fn -> "Broken" end)
+```
+
+```elixir
+FunPark.Foldable.fold_l(bad, &"Sensor: #{&1}", fn -> "Broken" end)
+```
+
+### Default Value
+
+````markdown
+```elixir
+def get_or_else(maybe, default) do
+  Foldable.fold_l(maybe, fn x -> x end, fn -> default end)
+end
+```
+````
+
+Let's start by generating some flaky sensors:
+
+```elixir
+sensor_a = FunPark.Monad.Maybe.pure(20)
+sensor_b = FunPark.Monad.Maybe.nothing()
+sensor_c = FunPark.Monad.Maybe.pure(30)
+sensor_d = FunPark.Monad.Maybe.pure(5)
+```
+
+Now we can use the higher-level `get_or_else/2`:
+
+```elixir
+get_or_else_5 = &FunPark.Monad.Maybe.get_or_else(&1, 5)
+```
+
+Here, `get_or_else_5/1` folds `Maybe` a number into a number:
+
+```elixir
+get_or_else_5.(sensor_a)
+|> FunPark.Math.sum(get_or_else_5.(sensor_b))
+|> FunPark.Math.sum(get_or_else_5.(sensor_c))
+|> FunPark.Math.sum(get_or_else_5.(sensor_d))
+```
+
+## Lift Other Contexts
+
+### Identity
+
+````markdown
+```elixir
+def lift_identity(%Identity{value: nil}), do: nothing()
+def lift_identity(%Identity{value: value}), do: just(value)
+```
+````
+
+Let's say we're dealing with a person, whose name might be missing (`nil`):
+
+```elixir
+person_1 = FunPark.Identity.pure("Dave")
+```
+
+```elixir
+person_2 = FunPark.Identity.pure(nil)
+```
+
+Our `lift_identity/1` logic converts this to a `Maybe`:
+
+```elixir
+maybe_person_1 = FunPark.Monad.Maybe.lift_identity(person_1)
+```
+
+```elixir
+maybe_person_2 = FunPark.Monad.Maybe.lift_identity(person_2)
+```
+
+And we can fold that `Maybe` back into a string:
+
+```elixir
+FunPark.Monad.Maybe.get_or_else(maybe_person_1, "Missing")
+```
+
+```elixir
+FunPark.Monad.Maybe.get_or_else(maybe_person_2, "Missing")
+```
+
+### Predicate
+
+````markdown
+```elixir
+def lift_predicate(value, predicate) do
+  Foldable.fold_l(fn -> predicate.(value) end, fn -> just(value) end, fn -> nothing() end)
+end
+```
+````
+
+Let's start by generating the Tea Cup ride with a wait time of 100 minutes:
+
+```elixir
+tea_cup = FunPark.Ride.make("Tea Cup", online: true, wait_time: 100)
+```
+
+Earlier, our `Ride` expert introduced `suggested?/1`, a predicate that checks whether a ride is online and has a wait time under thirty minutes. With a 100-minute wait, the Tea Cup is not suggested:
+
+```elixir
+FunPark.Ride.suggested?(tea_cup)
+```
+
+Because the Tea Cup's wait time is too long, it becomes *nothing* in the new context:
+
+```elixir
+FunPark.Monad.Maybe.lift_predicate(tea_cup, &FunPark.Ride.suggested?/1)
+```
+
+Later, the wait time drops:
+
+```elixir
+tea_cup = FunPark.Ride.update_wait_time(tea_cup, 10)
+```
+
+Now, the Tea Cup is *just* a `SuggestedRide`:
+
+```elixir
+FunPark.Monad.Maybe.lift_predicate(tea_cup, &FunPark.Ride.suggested?/1)
+```
+
+## Bridge Elixir Patterns
+
+````markdown
+```elixir
+def from_nil(nil), do: nothing()
+def from_nil(value), do: just(value)
+
+def to_nil(%Just{value: value}), do: value
+def to_nil(%Nothing{}), do: nil
+```
+````
+
+````markdown
+```elixir
+def get_fast_pass(%Patron{} = patron, %__MODULE__{} = ride) do
+  patron
+  |> Patron.get_fast_passes()
+  |> Enum.find(&FastPass.valid?(&1, ride))
+  |> Maybe.from_nil()
+end
+```
+````
+
+Let's start by creating a `Ride`, `FastPass`, and `Patron`:
+
+```elixir
+haunted_mansion = FunPark.Ride.make("Haunted Mansion", min_age: 14)
+
+datetime = DateTime.new!(~D[2025-06-01], ~T[13:00:00])
+fast_pass = FunPark.FastPass.make(haunted_mansion, datetime)
+
+alice = FunPark.Patron.make("Alice", 13, 150)
+```
+
+Alice does not have a `ValidFastPass`, so the result is *nothing*:
+
+```elixir
+FunPark.Ride.get_fast_pass(alice, haunted_mansion)
+```
+
+If she collects a fast-pass for the Haunted Mansion:
+
+```elixir
+alice = FunPark.Patron.add_fast_pass(alice, fast_pass)
+```
+
+She now has *just* a `ValidFastPass`:
+
+```elixir
+FunPark.Ride.get_fast_pass(alice, haunted_mansion)
+```
+
+## Define Equality
+
+````markdown
+```elixir
+defimpl FunPark.Eq, for: FunPark.Monad.Maybe.Just do
+  alias FunPark.Eq
+  alias FunPark.Monad.Maybe.{Just, Nothing}
+
+  def eq?(%Just{value: v1}, %Just{value: v2}), do: Eq.eq?(v1, v2)
+  def eq?(%Just{}, %Nothing{}), do: false
+
+  def not_eq?(%Just{value: v1}, %Just{value: v2}), do: Eq.not_eq?(v1, v2)
+  def not_eq?(%Just{}, %Nothing{}), do: true
+end
+```
+````
+
+````markdown
+```elixir
+defimpl FunPark.Eq, for: FunPark.Monad.Maybe.Nothing do
+  alias FunPark.Monad.Maybe.{Just, Nothing}
+
+  def eq?(%Nothing{}, %Nothing{}), do: true
+  def eq?(%Nothing{}, %Just{}), do: false
+
+  def not_eq?(%Nothing{}, %Nothing{}), do: false
+  def not_eq?(%Nothing{}, %Just{}), do: true
+end
+```
+````
+
+Let's return to our `Patron` context, creating two versions of Alice: the original, and a copy after she's updated her ticket to VIP:
+
+```elixir
+alice = FunPark.Patron.make("Alice", 15, 150)
+alice_copy = FunPark.Patron.change(alice, %{ticket_tier: :vip})
+```
+
+Our `Eq` correctly recognizes that both records are still Alice:
+
+```elixir
+FunPark.Eq.Utils.eq?(alice, alice_copy)
+```
+
+And like the `Identity` monad, lifting both versions into the `MaybePatron` preserves the equality:
+
+```elixir
+alice_maybe = FunPark.Monad.Maybe.pure(alice)
+alice_copy_maybe = FunPark.Monad.Maybe.pure(alice_copy)
+
+FunPark.Eq.Utils.eq?(alice_maybe, alice_copy_maybe)
+```
+
+However, refining the context to `MaybeVipPatron` draws a meaningful distinction:
+
+```elixir
+alice_maybe_vip = FunPark.Monad.Maybe.lift_predicate(
+  alice, &FunPark.Patron.vip?/1
+)
+alice_copy_maybe_vip = FunPark.Monad.Maybe.lift_predicate(
+  alice_copy, &FunPark.Patron.vip?/1
+)
+```
+
+Within the context of `MaybeVipPatron`, these two records are not equal:
+
+```elixir
+FunPark.Eq.Utils.eq?(alice_maybe_vip, alice_copy_maybe_vip)
+```
+
+## Establish Order
+
+````markdown
+```elixir
+defimpl FunPark.Ord, for: FunPark.Monad.Maybe.Just do
+  alias FunPark.Ord
+  alias FunPark.Monad.Maybe.{Just, Nothing}
+
+  def lt?(%Just{value: v1}, %Just{value: v2}), do: Ord.lt?(v1, v2)
+  def lt?(%Just{}, %Nothing{}), do: false
+
+  def le?(%Just{value: v1}, %Just{value: v2}), do: Ord.le?(v1, v2)
+  def le?(%Just{}, %Nothing{}), do: false
+
+  def gt?(%Just{value: v1}, %Just{value: v2}), do: Ord.gt?(v1, v2)
+  def gt?(%Just{}, %Nothing{}), do: true
+
+  def ge?(%Just{value: v1}, %Just{value: v2}), do: Ord.ge?(v1, v2)
+  def ge?(%Just{}, %Nothing{}), do: true
+end
+```
+````
+
+````markdown
+```elixir
+defimpl FunPark.Ord, for: FunPark.Monad.Maybe.Nothing do
+  alias FunPark.Monad.Maybe.{Just, Nothing}
+
+  def lt?(%Nothing{}, %Nothing{}), do: false
+  def lt?(%Nothing{}, %Just{}), do: true
+
+  def le?(%Nothing{}, %Nothing{}), do: true
+  def le?(%Nothing{}, %Just{}), do: true
+
+  def gt?(%Nothing{}, %Nothing{}), do: false
+  def gt?(%Nothing{}, %Just{}), do: false
+
+  def ge?(%Nothing{}, %Nothing{}), do: true
+  def ge?(%Nothing{}, %Just{}), do: false
+end
+```
+````
+
+Let's start by regenerating Alice and Beth:
+
+```elixir
+alice = FunPark.Patron.make("Alice", 15, 150, ticket_tier: :vip)
+beth = FunPark.Patron.make("Beth", 15, 150)
+```
+
+The default order for a `Patron` is alphabetical by name, so Alice is less than Beth:
+
+```elixir
+FunPark.Ord.Utils.compare(alice, beth)
+```
+
+And like `Eq`, lifting the patrons into `MaybePatron` preserves that order:
+
+```elixir
+alice_m = FunPark.Monad.Maybe.pure(alice)
+beth_m = FunPark.Monad.Maybe.pure(beth)
+
+FunPark.Ord.Utils.compare(alice_m, beth_m)
+```
+
+Also like `Eq`, refining the context to `MaybeVipPatron` changes the behavior:
+
+```elixir
+alice_vip = 
+FunPark.Monad.Maybe.lift_predicate(alice, &FunPark.Patron.vip?/1)
+
+beth_vip = 
+FunPark.Monad.Maybe.lift_predicate(beth, &FunPark.Patron.vip?/1)
+
+FunPark.Ord.Utils.compare(alice_vip, beth_vip)
+```
+
+## Lift Custom Comparisons
+
+````markdown
+```elixir
+def lift_eq(custom_eq) do
+  custom_eq = Eq.Utils.to_eq_map(custom_eq)
+  
+  %{
+    eq?: fn 
+      %Just{value: v1}, %Just{value: v2} -> custom_eq.eq?.(v1, v2)
+      %Nothing{}, %Nothing{} -> true
+      _, _ -> false
+    end,
+    not_eq?: fn 
+      %Just{value: v1}, %Just{value: v2} -> custom_eq.not_eq?.(v1, v2)
+      %Nothing{}, %Nothing{} -> false
+      _, _ -> true
+    end
+  }
+end
+```
+````
+
+````markdown
+```elixir
+def lift_ord(custom_ord) do
+  custom_ord = Ord.Utils.to_ord_map(custom_ord)
+  
+  %{
+    lt?: fn 
+      %Just{value: v1}, %Just{value: v2} -> custom_ord.lt?.(v1, v2)
+      %Nothing{}, %Just{} -> true
+      _, _ -> false
+    end,
+    le?: fn 
+      %Just{value: v1}, %Just{value: v2} -> custom_ord.le?.(v1, v2)
+      %Nothing{}, _ -> true
+      %Just{}, %Nothing{} -> false
+    end,
+    gt?: fn 
+      %Just{value: v1}, %Just{value: v2} -> custom_ord.gt?.(v1, v2)
+      %Just{}, %Nothing{} -> true
+      _, _ -> false
+    end,
+    ge?: fn 
+      %Just{value: v1}, %Just{value: v2} -> custom_ord.ge?.(v1, v2)
+      %Just{}, _ -> true
+      %Nothing{}, %Nothing{} -> true
+    end
+  }
+end
+```
+````
+
+Let's return to Alice and Beth:
+
+```elixir
+alice = FunPark.Patron.make("Alice", 15, 150, ticket_tier: :vip)
+beth = FunPark.Patron.make("Beth", 15, 150)
+```
+
+We'll compare patrons using `ord_by_ticket_tier/0`, where Alice, as a VIP, ranks higher than Beth:
+
+```elixir
+ord_by_ticket = FunPark.Patron.ord_by_ticket_tier()
+FunPark.Ord.Utils.compare(alice, beth, ord_by_ticket)
+```
+
+Now, let's lift both patrons into the `Maybe` context:
+
+```elixir
+alice_maybe = FunPark.Monad.Maybe.pure(alice)
+beth_maybe = FunPark.Monad.Maybe.pure(beth)
+```
+
+To use the same custom logic, we also need to lift the comparator:
+
+```elixir
+lifted_ord = FunPark.Monad.Maybe.lift_ord(ord_by_ticket)
+```
+
+Alice, with her VIP ticket is greater:
+
+```elixir
+FunPark.Ord.Utils.compare(alice_maybe, beth_maybe, lifted_ord)
+```
+
+## Model Absence in a Monoid
+
+````markdown
+```elixir
+def max_priority_monoid do
+  %FunPark.Monoid.Max{
+    value: priority_empty(),
+    ord: ord_by_priority()
+  }
+end
+```
+````
+
+````markdown
+```elixir
+def max_priority_maybe_monoid do
+  %FunPark.Monoid.Max{
+    value: FunPark.Monad.Maybe.nothing(),
+    ord: FunPark.Monad.Maybe.lift_ord(ord_by_priority())
+  }
+end
+```
+````
+
+````markdown
+```elixir
+def highest_priority_maybe(patrons) when is_list(patrons) do
+  patrons
+  |> Enum.map(&FunPark.Monad.Maybe.pure/1)
+  |> then(&FunPark.Monoid.Utils.m_concat(max_priority_maybe_monoid(), &1))
+end
+```
+````
+
+Start by creating three patrons:
+
+```elixir
+alice = FunPark.Patron.make(
+  "Alice", 15, 120, 
+  reward_points: 50, ticket_tier: :premium
+)
+
+beth = FunPark.Patron.make(
+  "Beth", 16, 130, 
+  reward_points: 20, ticket_tier: :vip
+)
+
+charles = FunPark.Patron.make(
+  "Charles", 14, 135, 
+  reward_points: 150, ticket_tier: :premium
+)
+```
+
+Using `highest_priority_maybe/1`, we determine who should go next:
+
+```elixir
+FunPark.Patron.highest_priority_maybe([alice, beth, charles])
+```
+
+```elixir
+FunPark.Patron.highest_priority_maybe([alice, charles])
+```
+
+```elixir
+FunPark.Patron.highest_priority_maybe([alice])
+```
+
+And when the queue is empty, the result is *nothing*:
+
+```elixir
+FunPark.Patron.highest_priority_maybe([])
+```
+
+## Implement the Monadic Behaviors
+
+````markdown
+```elixir
+defimpl FunPark.Monad, for: FunPark.Monad.Maybe.Nothing do
+  def map(%FunPark.Monad.Maybe.Nothing{}, _function), do: %FunPark.Monad.Maybe.Nothing{}
+  def bind(%FunPark.Monad.Maybe.Nothing{}, _function), do: %FunPark.Monad.Maybe.Nothing{}
+  def ap(%FunPark.Monad.Maybe.Nothing{}, _value), do: %FunPark.Monad.Maybe.Nothing{}
+end
+```
+````
+
+````markdown
+```elixir
+defimpl FunPark.Monad, for: FunPark.Monad.Maybe.Just do
+  alias FunPark.Monad.Maybe.{Just, Nothing}
+
+  def map(%Just{value: value}, function) do
+    %Just{value: function.(value)}
+  end
+
+  def bind(%Just{value: value}, function) do
+    function.(value)
+  end
+
+  def ap(%Just{value: function}, %Just{value: value}) do
+    %Just{value: function.(value)}
+  end
+  def ap(%Just{}, %Nothing{}) do
+    %Nothing{}
+  end
+end
+```
+````
+
+### Functor Map
+
+````markdown
+```elixir
+def update_wait_time_maybe(%__MODULE__{} = ride, wait_time)
+    when is_number(wait_time) do
+
+  ride
+  |> Maybe.lift_predicate(&online?/1)
+  |> map(&update_wait_time(&1, wait_time))
+end
+```
+````
+
+First, let's generate an offline Tea Cup ride:
+
+```elixir
+tea_cup = FunPark.Ride.make("Tea Cup", online: false)
+FunPark.Ride.update_wait_time_maybe(tea_cup, 20)
+```
+
+Later, when the ride comes back online:
+
+```elixir
+tea_cup = FunPark.Ride.change(tea_cup, %{online: true})
+```
+
+Now, Tea Cup is *just* an `OnlineRide`, so the transformation is applied:
+
+```elixir
+FunPark.Ride.update_wait_time_maybe(tea_cup, 20)
+```
+
+### Monad Bind
+
+````markdown
+```elixir
+def check_ride_eligibility(%Patron{} = patron, %__MODULE__{} = ride) do
+  Maybe.lift_predicate(patron, &eligible?(&1, ride))
+end
+```
+````
+
+````markdown
+```elixir
+def check_fast_pass(%Patron{} = patron, %__MODULE__{} = ride) do
+  get_fast_pass(patron, ride)
+  |> map(fn _ -> patron end)
+end
+```
+````
+
+````markdown
+```elixir
+def fast_pass_lane(%Patron{} = patron, %__MODULE__{} = ride) do
+  check_fast_pass = curry_r(&check_fast_pass/2)
+
+  patron
+  |> check_ride_eligibility(ride)
+  |> bind(check_fast_pass.(ride))
+end
+```
+````
+
+Let's start by setting up a ride, a FastPass, and a couple of patrons:
+
+```elixir
+haunted_mansion = FunPark.Ride.make("Haunted Mansion", min_age: 14)
+datetime = DateTime.new!(~D[2025-06-01], ~T[13:00:00])
+fast_pass = FunPark.FastPass.make(haunted_mansion, datetime)
+
+alice = FunPark.Patron.make("Alice", 15, 150)
+beth = FunPark.Patron.make("Beth", 13, 130)
+```
+
+Alice does not qualify for the fast lane:
+
+```elixir
+FunPark.Ride.fast_pass_lane(alice, haunted_mansion)
+```
+
+Unless we give her a `FastPass`:
+
+```elixir
+alice = FunPark.Patron.add_fast_pass(alice, fast_pass)
+
+FunPark.Ride.fast_pass_lane(alice, haunted_mansion)
+```
+
+Beth is too young for the Haunted Mansion, so even with a `FastPass`, she does not qualify:
+
+```elixir
+beth = FunPark.Patron.add_fast_pass(beth, fast_pass)
+
+FunPark.Ride.fast_pass_lane(beth, haunted_mansion)
+```
+
+### Recovery
+
+````markdown
+```elixir
+def or_else(%Just{} = just, _thunk), do: just
+def or_else(%Nothing{}, thunk), do: thunk.()
+```
+````
+
+````markdown
+```elixir
+def check_vip_or_fast_pass(%Patron{} = patron, %__MODULE__{} = ride) do
+  Maybe.lift_predicate(patron, &Patron.vip?/1)
+  |> or_else(fn -> check_fast_pass(patron, ride) end)
+end
+```
+````
+
+````markdown
+```elixir
+def fast_pass_lane(%Patron{} = patron, %__MODULE__{} = ride) do
+  check_vip_or_pass = curry_r(&check_vip_or_fast_pass/2).(ride)
+
+  patron
+  |> check_ride_eligibility(ride)
+  |> bind(check_vip_or_pass)
+end
+```
+````
+
+Let's generate Charles:
+
+```elixir
+charles = FunPark.Patron.make("Charles", 15, 145)
+```
+
+Although Charles is eligible for the Haunted Mansion, he has neither a FastPass nor a VIP:
+
+```elixir
+FunPark.Ride.fast_pass_lane(charles, haunted_mansion)
+```
+
+Later, he upgrades to VIP:
+
+```elixir
+charles = FunPark.Patron.change(charles, %{ticket_tier: :vip})
+```
+
+And now qualifies:
+
+```elixir
+FunPark.Ride.fast_pass_lane(charles, haunted_mansion)
+```
+
+## Refine Lists
+
+### Concat
+
+````markdown
+```elixir
+def concat(maybe_list) when is_list(maybe_list) do
+  maybe_list
+  |> Enum.reduce([], fn maybe, acc ->
+    Foldable.fold_l(maybe, fn value -> [value | acc] end, fn -> acc end)
+  end)
+  |> :lists.reverse()
+end
+```
+````
+
+````markdown
+```elixir
+def only_fast_pass_lane_concat(patrons, %__MODULE__{} = ride)
+    when is_list(patrons) do
+  patrons
+  |> Enum.map(&fast_pass_lane(&1, ride))
+  |> Maybe.concat()
+end
+```
+````
+
+Let's start by generating a ride, a fast pass, and some patrons:
+
+```elixir
+haunted_mansion = FunPark.Ride.make("Haunted Mansion", min_age: 14)
+datetime = DateTime.new!(~D[2025-06-01], ~T[13:00:00])
+fast_pass = FunPark.FastPass.make(haunted_mansion, datetime)
+
+alice = FunPark.Patron.make("Alice", 15, 150)
+beth = FunPark.Patron.make("Beth", 13, 135)
+charles = FunPark.Patron.make("Charles", 15, 145)
+```
+
+Next, we'll give Alice and Beth fast passes, and upgrade Charles to VIP:
+
+```elixir
+alice = FunPark.Patron.add_fast_pass(alice, fast_pass)
+beth = FunPark.Patron.add_fast_pass(beth, fast_pass)
+charles = FunPark.Patron.change(charles, %{ticket_tier: :vip})
+```
+
+Now, we can use `only_fast_pass_lane/2` to refine our list:
+
+```elixir
+patrons = [alice, beth, charles]
+FunPark.Ride.only_fast_pass_lane_concat(patrons, haunted_mansion)
+```
+
+### Concat Map
+
+````markdown
+```elixir
+def concat_map(list, func) when is_list(list) and is_function(func) do
+  list
+  |> Enum.reduce([], fn item, acc ->
+    case func.(item) do
+      %Just{value: value} -> [value | acc]
+      %Nothing{} -> acc
+    end
+  end)
+  |> :lists.reverse()
+end
+```
+````
+
+````markdown
+```elixir
+def only_fast_pass_lane(patrons, %__MODULE__{} = ride)
+    when is_list(patrons) do
+  Maybe.concat_map(patrons, &fast_pass_lane(&1, ride))
+end
+```
+````
+
+Let's return to our patrons and ride. The `only_fast_pass_lane/2` function still returns *just* the eligible patrons:
+
+```elixir
+patrons = [alice, beth, charles]
+FunPark.Ride.only_fast_pass_lane(patrons, haunted_mansion)
+```
+
+### Sequence
+
+````markdown
+```elixir
+def sequence([]), do: pure([])
+def sequence([head | tail]) do
+  bind(head, fn value ->
+    bind(sequence(tail), fn rest ->
+      pure([value | rest])
+    end)
+  end)
+end
+```
+````
+
+````markdown
+```elixir
+def group_fast_pass_lane(patrons, %__MODULE__{} = ride)
+    when is_list(patrons) do
+  patrons
+  |> Enum.map(&fast_pass_lane(&1, ride))
+  |> Maybe.sequence()
+end
+```
+````
+
+Let's reuse our ride and patrons:
+
+Remember, even though she has a fast-pass, Beth is too young, so the group cannot enter the fast lane:
+
+```elixir
+patrons = [alice, beth, charles]
+FunPark.Ride.group_fast_pass_lane(patrons, haunted_mansion)
+```
+
+However, if Beth steps aside, as a group, Alice and Charles can enter the fast lane:
+
+```elixir
+FunPark.Ride.group_fast_pass_lane([alice, charles], haunted_mansion)
+```
+
+### Traverse
+
+````markdown
+```elixir
+def traverse(list, func) when is_list(list) and is_function(func) do
+  Enum.reduce_while(list, pure([]), fn item, acc ->
+    case bind(acc, fn values ->
+      case func.(item) do
+        %Just{value: value} -> pure([value | values])
+        %Nothing{} = nothing -> nothing
+      end
+    end) do
+      %Just{} = result -> {:cont, result}
+      %Nothing{} = nothing -> {:halt, nothing}
+    end
+  end)
+  |> map(&:lists.reverse/1)
+end
+```
+````
+
+````markdown
+```elixir
+def group_fast_pass_lane(patrons, %__MODULE__{} = ride)
+    when is_list(patrons) do
+  Maybe.traverse(patrons, &fast_pass_lane(&1, ride))
+end
+```
+````
+
+Returning to our patrons and ride, we get the same results—Beth is too young for the Haunted Mansion:
+
+```elixir
+patrons = [alice, beth, charles]
+```
+
+```elixir
+FunPark.Ride.group_fast_pass_lane(patrons, haunted_mansion)
+```
+
+## Filter Within Composition
+
+````markdown
+```elixir
+defprotocol FunPark.Filterable do
+  def guard(filterable, boolean)
+  def filter(filterable, predicate)
+  def filter_map(filterable, function)
+end
+```
+````
+
+````markdown
+```elixir
+defimpl FunPark.Filterable, for: FunPark.Monad.Maybe.Nothing do
+  def guard(%FunPark.Monad.Maybe.Nothing{}, _boolean), do: %FunPark.Monad.Maybe.Nothing{}
+  def filter(%FunPark.Monad.Maybe.Nothing{}, _predicate), do: %FunPark.Monad.Maybe.Nothing{}
+  def filter_map(%FunPark.Monad.Maybe.Nothing{}, _function), do: %FunPark.Monad.Maybe.Nothing{}
+end
+```
+````
+
+````markdown
+```elixir
+defimpl FunPark.Filterable, for: FunPark.Monad.Maybe.Just do
+  alias FunPark.Monad.Maybe.{Just, Nothing}
+
+  def guard(%Just{} = just, true), do: just
+  def guard(%Just{}, false), do: %Nothing{}
+
+  def filter(%Just{value: value} = just, predicate) do
+    if predicate.(value), do: just, else: %Nothing{}
+  end
+
+  def filter_map(%Just{value: value}, function) do
+    case function.(value) do
+      %Just{} = result -> result
+      %Nothing{} -> %Nothing{}
+    end
+  end
+end
+```
+````
+
+### Guard
+
+````markdown
+```elixir
+def update_wait_time_maybe(%__MODULE__{} = ride, wait_time) do
+  ride
+  |> Maybe.lift_predicate(&online?/1)
+  |> map(&update_wait_time(&1, wait_time))
+  |> guard(wait_time >= 0)
+end
+```
+````
+
+Let's start by generating a ride:
+
+```elixir
+tea_cup = FunPark.Ride.make("Tea Cup")
+```
+
+Updating with a positive number and we get *just* the ride:
+
+```elixir
+FunPark.Ride.update_wait_time_maybe(tea_cup, 10)
+```
+
+But if we provide a negative number, the guard short-circuits:
+
+```elixir
+FunPark.Ride.update_wait_time_maybe(tea_cup, -10)
+```
+
+The pipeline continues to respect the `OnlineRide` context. If we update the Tea Cup to be offline:
+
+```elixir
+tea_cup = FunPark.Ride.change(tea_cup, %{online: false})
+
+FunPark.Ride.update_wait_time_maybe(tea_cup, 10)
+```
+
+### Filter
+
+````markdown
+```elixir
+def add_fast_pass_maybe(%__MODULE__{} = patron, %FastPass{} = fast_pass) do
+  ride = FastPass.get_ride(fast_pass)
+  
+  patron
+  |> Maybe.pure()
+  |> filter(&Ride.eligible?(&1, ride))
+  |> map(&add_fast_pass(&1, fast_pass))
+end
+```
+````

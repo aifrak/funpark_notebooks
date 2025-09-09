@@ -1,5 +1,11 @@
 # Implement Domain-Specific Equality with Protocols
 
+```elixir
+Mix.install([
+  {:fun_park, path: "/mnt/funpark_lib"}
+])
+```
+
 ## Advanced Functional Programming with Elixir
 
 |                                                                                                    |                                                                                                                                                                              |

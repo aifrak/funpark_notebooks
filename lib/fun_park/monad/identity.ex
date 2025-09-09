@@ -1,16 +1,22 @@
+#---
+# Excerpted from "Advanced Functional Programming with Monads in Elixir",
+# published by The Pragmatic Bookshelf.
+# Copyrights apply to this code. It may not be used to create training material,
+# courses, books, articles, and the like. Contact us if you are in doubt.
+# We make no guarantees that this code is fit for any purpose.
+# Visit https://pragprog.com/titles/jkelixir for more book information.
+#---
 defmodule FunPark.Identity do
   alias FunPark.Eq
   alias FunPark.Ord
 
-  # START:basic
   @enforce_keys [:value]
   defstruct [:value]
 
   def pure(value), do: %__MODULE__{value: value}
   def extract(%__MODULE__{value: value}), do: value
-  # END:basic
 
-  # START:lift_eq
+  
   def lift_eq(custom_eq) do
     custom_eq = Eq.Utils.to_eq_map(custom_eq)
 
@@ -25,9 +31,8 @@ defmodule FunPark.Identity do
     }
   end
 
-  # END:lift_eq
 
-  # START:lift_ord
+  
   def lift_ord(custom_ord) do
     custom_ord = Ord.Utils.to_ord_map(custom_ord)
 
@@ -51,10 +56,8 @@ defmodule FunPark.Identity do
     }
   end
 
-  # END:lift_ord
 end
 
-# START:impl_monad
 defimpl FunPark.Monad, for: FunPark.Identity do
   alias FunPark.Identity
 
@@ -71,18 +74,16 @@ defimpl FunPark.Monad, for: FunPark.Identity do
   end
 end
 
-# END:impl_monad
 
-# START:impl_string
+
 defimpl String.Chars, for: FunPark.Identity do
   alias FunPark.Identity
 
   def to_string(%Identity{value: value}), do: "Identity(#{value})"
 end
 
-# END:impl_string
 
-# START:impl_eq
+
 defimpl FunPark.Eq, for: FunPark.Identity do
   alias FunPark.Identity
   alias FunPark.Eq
@@ -93,9 +94,8 @@ defimpl FunPark.Eq, for: FunPark.Identity do
     do: Eq.not_eq?(v1, v2)
 end
 
-# END:impl_eq
 
-# START:impl_ord
+
 defimpl FunPark.Ord, for: FunPark.Identity do
   alias FunPark.Ord
   alias FunPark.Identity
@@ -106,4 +106,3 @@ defimpl FunPark.Ord, for: FunPark.Identity do
   def ge?(%Identity{value: v1}, %Identity{value: v2}), do: Ord.ge?(v1, v2)
 end
 
-# END:impl_ord

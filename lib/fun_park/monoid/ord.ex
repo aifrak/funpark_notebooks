@@ -1,29 +1,25 @@
+#---
+# Excerpted from "Advanced Functional Programming with Monads in Elixir",
+# published by The Pragmatic Bookshelf.
+# Copyrights apply to this code. It may not be used to create training material,
+# courses, books, articles, and the like. Contact us if you are in doubt.
+# We make no guarantees that this code is fit for any purpose.
+# Visit https://pragprog.com/titles/jkelixir for more book information.
+#---
 # credo:disable-for-this-file
-# START:module
 defmodule FunPark.Monoid.Ord do
   defstruct lt?: &FunPark.Monoid.Ord.default?/2,
             le?: &FunPark.Monoid.Ord.default?/2,
             gt?: &FunPark.Monoid.Ord.default?/2,
             ge?: &FunPark.Monoid.Ord.default?/2
-
   def default?(_, _), do: false
 end
-
-# END:module
-
-# START:impl_monoid
 defimpl FunPark.Monoid, for: FunPark.Monoid.Ord do
   alias FunPark.Monoid.Ord
   alias FunPark.Ord.Utils
-
-  # START:empty
   def empty(_) do
     %Ord{}
   end
-
-  # END:empty
-
-  # START:append
   def append(%Ord{} = ord1, %Ord{} = ord2) do
     %Ord{
       lt?: fn a, b ->
@@ -56,13 +52,8 @@ defimpl FunPark.Monoid, for: FunPark.Monoid.Ord do
       end
     }
   end
-
-  # END:append
-
-  # START:wrap
   def wrap(%Ord{}, ord) do
     ord = Utils.to_ord_map(ord)
-
     %Ord{
       lt?: ord.lt?,
       le?: ord.le?,
@@ -70,7 +61,6 @@ defimpl FunPark.Monoid, for: FunPark.Monoid.Ord do
       ge?: ord.ge?
     }
   end
-
   def unwrap(%Ord{lt?: lt?, le?: le?, gt?: gt?, ge?: ge?}) do
     %{
       lt?: lt?,
@@ -79,8 +69,4 @@ defimpl FunPark.Monoid, for: FunPark.Monoid.Ord do
       ge?: ge?
     }
   end
-
-  # END:wrap
 end
-
-# END:impl_monoid

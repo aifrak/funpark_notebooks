@@ -1,0 +1,207 @@
+# Access Shared Environment with Reader
+
+```elixir
+Mix.install([
+  {:fun_park, path: "/mnt/funpark_lib"}
+])
+```
+
+## Advanced Functional Programming with Elixir
+
+|                                                                                                    |                                                                                                                                                                              |
+| -------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| <img src="https://www.joekoski.com/assets/images/jkelixir_small.jpg" alt="Book cover" width="120"> | **Interactive Examples from Chapter 7**<br/>[Advanced Functional Programming with Elixir](https://pragprog.com/titles/jkelixir/advanced-functional-programming-with-elixir). |
+
+## Build the Structures
+
+````markdown
+```elixir
+defmodule FunPark.Reader do
+  defstruct run: nil
+
+  def pure(value) do
+    %__MODULE__{run: fn _ -> value end}
+  end
+
+  def run(%__MODULE__{run: run}, environment) do
+    run.(environment)
+  end
+end
+```
+````
+
+## Monad Behaviors
+
+````markdown
+```elixir
+defimpl FunPark.Monad, for: FunPark.Reader do
+  def map(%FunPark.Reader{run: run}, function) do
+    %FunPark.Reader{run: fn env -> function.(run.(env)) end}
+  end
+
+  def bind(%FunPark.Reader{run: run}, function) do
+    %FunPark.Reader{run: fn env -> 
+      inner_reader = function.(run.(env))
+      inner_reader.run.(env)
+    end}
+  end
+
+  def ap(%FunPark.Reader{run: run_f}, %FunPark.Reader{run: run_v}) do
+    %FunPark.Reader{run: fn env -> run_f.(env).(run_v.(env)) end}
+  end
+end
+```
+````
+
+````markdown
+```elixir
+def asks(function) do
+  %__MODULE__{run: function}
+end
+```
+````
+
+## Avoid Prop Drilling
+
+First, let's generate a patron and a value:
+
+```elixir
+alice = FunPark.Patron.make("Alice", 15, 130)
+```
+
+```elixir
+value = 2
+```
+
+And define a couple of simple functions:
+
+```elixir
+square = fn n -> n * n end
+message = fn {n, patron} -> "#{patron.name} has #{n}" end
+```
+
+We can call each one on its own:
+
+```elixir
+square.(value)
+```
+
+```elixir
+message.({value, alice})
+```
+
+One strategy is to tunnel, having the `square/1` accept and forward the patron information:
+
+```elixir
+square_tunnel = fn {n, patron} -> {square.(n), patron} end
+```
+
+Now they can be piped together:
+
+```elixir
+{value, alice} |> square_tunnel.() |> message.()
+```
+
+Instead, let's update our `message/1` function to take the number and retrieve the patron from the `Reader`:
+
+```elixir
+reader_message = fn n -> FunPark.Reader.asks(
+  fn patron -> "#{patron.name} has #{n}" end
+) end
+```
+
+Now we can build the pipeline:
+
+```elixir
+deferred_message = FunPark.Reader.pure(value) 
+|> FunPark.Monad.map(square) 
+|> FunPark.Monad.bind(reader_message)
+```
+
+We use `run/2` to resolve `deferred_message` with Alice:
+
+```elixir
+FunPark.Reader.run(deferred_message, alice)
+```
+
+And we can just as easily switch patrons:
+
+```elixir
+beth = FunPark.Patron.make("Beth", 16, 135)
+```
+
+```elixir
+FunPark.Reader.run(deferred_message, beth)
+```
+
+## Dependency Injection
+
+Let's start again with Alice:
+
+```elixir
+alice = FunPark.Patron.make("Alice", 15, 130)
+```
+
+We'll define two services: one for production and one for testing:
+
+```elixir
+prod_service = fn name -> "Hi, #{name}, from prod!" end
+test_service = fn name -> "Hi, #{name}, from test!" end
+```
+
+The `deferred_greeting` function applies a patron's name to the injected service:
+
+```elixir
+deferred_greeting = fn p -> FunPark.Reader.asks(& &1.(p.name)) end
+```
+
+Now we can construct a deferred greeting for Alice:
+
+```elixir
+alice_greeting = deferred_greeting.(alice)
+```
+
+And inject the test service:
+
+```elixir
+FunPark.Reader.run(alice_greeting, test_service)
+```
+
+Or the production service:
+
+```elixir
+FunPark.Reader.run(alice_greeting, prod_service)
+```
+
+## Shared Configuration
+
+````markdown
+```elixir
+def make_from_env(name) do
+  Reader.asks(fn config ->
+    make(name, 
+      min_age: config.min_age, 
+      min_height: config.min_height
+    )
+  end)
+end
+```
+````
+
+Our Apple Cart ride has a configuration:
+
+```elixir
+apple_config = %{min_age: 10, min_height: 120}
+```
+
+And we can create a `deferred_apple`—a ride that waits for its configuration:
+
+```elixir
+deferred_apple = FunPark.Ride.make_from_env("Apple Cart")
+```
+
+Using the Reader, we run the deferred ride with its config:
+
+```elixir
+apple = FunPark.Reader.run(deferred_apple, apple_config)
+```

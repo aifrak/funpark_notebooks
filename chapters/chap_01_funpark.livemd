@@ -1,5 +1,11 @@
 # Build FunPark: Model Real-World Data
 
+```elixir
+Mix.install([
+  {:fun_park, path: "/mnt/funpark_lib"}
+])
+```
+
 ## Advanced Functional Programming with Elixir
 
 |                                                                                                    |                                                                                                                                                                              |

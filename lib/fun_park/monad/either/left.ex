@@ -1,4 +1,11 @@
-# START:module
+#---
+# Excerpted from "Advanced Functional Programming with Monads in Elixir",
+# published by The Pragmatic Bookshelf.
+# Copyrights apply to this code. It may not be used to create training material,
+# courses, books, articles, and the like. Contact us if you are in doubt.
+# We make no guarantees that this code is fit for any purpose.
+# Visit https://pragprog.com/titles/jkelixir for more book information.
+#---
 defmodule FunPark.Monad.Either.Left do
   @enforce_keys [:left]
   defstruct [:left]
@@ -6,18 +13,14 @@ defmodule FunPark.Monad.Either.Left do
   def pure(value), do: %__MODULE__{left: value}
 end
 
-# END:module
-
-# START:impl_string
 defimpl String.Chars, for: FunPark.Monad.Either.Left do
   alias FunPark.Monad.Either.Left
 
   def to_string(%Left{left: left}), do: "Left(#{left})"
 end
 
-# END:impl_string
 
-# START:impl_monad
+
 defimpl FunPark.Monad, for: FunPark.Monad.Either.Left do
   alias FunPark.Monad.Either.{Left, Right}
   def map(%Left{} = left, _func), do: left
@@ -28,9 +31,8 @@ defimpl FunPark.Monad, for: FunPark.Monad.Either.Left do
   def bind(%Left{} = left, _func), do: left
 end
 
-# END:impl_monad
 
-# START:impl_foldable
+
 defimpl FunPark.Foldable, for: FunPark.Monad.Either.Left do
   alias FunPark.Monad.Either.Left
 
@@ -43,9 +45,8 @@ defimpl FunPark.Foldable, for: FunPark.Monad.Either.Left do
   end
 end
 
-# END:impl_foldable
 
-# START:impl_eq
+
 defimpl FunPark.Eq, for: FunPark.Monad.Either.Left do
   alias FunPark.Monad.Either.{Left, Right}
   alias FunPark.Eq
@@ -57,9 +58,8 @@ defimpl FunPark.Eq, for: FunPark.Monad.Either.Left do
   def not_eq?(%Left{}, %Right{}), do: true
 end
 
-# END:impl_eq
 
-# START:impl_ord
+
 defimpl FunPark.Ord, for: FunPark.Monad.Either.Left do
   alias FunPark.Monad.Either.{Left, Right}
   alias FunPark.Ord
@@ -77,4 +77,3 @@ defimpl FunPark.Ord, for: FunPark.Monad.Either.Left do
   def ge?(%Left{}, %Right{}), do: false
 end
 
-# END:impl_ord

@@ -1,3 +1,11 @@
+#---
+# Excerpted from "Advanced Functional Programming with Monads in Elixir",
+# published by The Pragmatic Bookshelf.
+# Copyrights apply to this code. It may not be used to create training material,
+# courses, books, articles, and the like. Contact us if you are in doubt.
+# We make no guarantees that this code is fit for any purpose.
+# Visit https://pragprog.com/titles/jkelixir for more book information.
+#---
 defmodule FunPark.Maintenance.Repo do
   import FunPark.Monad, only: [bind: 2, map: 2]
 
@@ -6,7 +14,6 @@ defmodule FunPark.Maintenance.Repo do
   alias FunPark.Maintenance.Store
   alias FunPark.Ride
 
-  # START:create_store
   def create_store do
     Either.sequence_a([
       Store.create_table(:schedule),
@@ -16,18 +23,12 @@ defmodule FunPark.Maintenance.Repo do
     ])
   end
 
-  # END:create_store
-
-  # START:add_schedule
   def add_schedule(%Ride{} = ride) do
     ride
     |> add_ride_effect()
     |> Effect.run(%{table: :schedule})
   end
 
-  # END:add_schedule
-
-  # START:add_others
   def add_unschedule(%Ride{} = ride) do
     ride
     |> add_ride_effect()
@@ -46,9 +47,6 @@ defmodule FunPark.Maintenance.Repo do
     |> Effect.run(%{table: :compliance})
   end
 
-  # END:add_others
-
-  # START:remove
   def remove_schedule(%Ride{} = ride) do
     ride
     |> remove_ride_effect()
@@ -73,17 +71,11 @@ defmodule FunPark.Maintenance.Repo do
     |> Effect.run(%{table: :compliance})
   end
 
-  # END:remove
-
-  # START:in_maintenance
   def in_schedule(%Ride{} = ride), do: has_ride_effect(ride, :schedule)
   def in_unschedule(%Ride{} = ride), do: has_ride_effect(ride, :unschedule)
   def in_lockout(%Ride{} = ride), do: has_ride_effect(ride, :lockout)
   def in_compliance(%Ride{} = ride), do: has_ride_effect(ride, :compliance)
 
-  # END:in_maintenance
-
-  # START:not_in
   def not_in_schedule(%Ride{} = ride) do
     assert_absent_effect(
       ride,
@@ -116,59 +108,37 @@ defmodule FunPark.Maintenance.Repo do
     )
   end
 
-  # END:not_in
-
-  # START:validate_ride_effect
-
   defp validate_ride_effect(ride) do
     Effect.lift_either(fn -> Ride.validate(ride) end)
   end
 
-  # END:validate_ride_effect
-
-  # START:add_to_store_effect
   defp add_to_store_effect(valid_ride) do
     Effect.asks(fn env -> env[:table] end)
     |> bind(fn table -> Store.add(valid_ride, table) end)
   end
 
-  # END:add_to_store_effect
-
-  # START:add_ride_effect
   def add_ride_effect(%Ride{} = ride) do
     validate_ride_effect(ride)
     |> bind(&add_to_store_effect/1)
   end
 
-  # END:add_ride_effect
-
-  # START:remove_from_store_effect
   defp remove_from_store_effect(valid_ride) do
     Effect.asks(fn env -> env[:table] end)
     |> bind(fn table -> Store.remove(valid_ride, table) end)
   end
 
-  # END:remove_from_store_effect
-
-  # START:remove_ride_effect
   def remove_ride_effect(%Ride{} = ride) do
     validate_ride_effect(ride)
     |> bind(&remove_from_store_effect/1)
     |> map(fn _ -> ride end)
   end
 
-  # END:remove_ride_effect
-
-  # START:has_ride_effect
   def has_ride_effect(%Ride{} = ride, table) do
     Effect.asks(fn env -> env[:store] end)
     |> bind(fn store -> store.get(ride, table) end)
     |> map(fn _ -> ride end)
   end
 
-  # END:has_ride_effect
-
-  # START:assert_absent_effect
   def assert_absent_effect(%Ride{} = ride, kleisli_fn, reason_msg) do
     ride
     |> kleisli_fn.()
@@ -190,6 +160,4 @@ defmodule FunPark.Maintenance.Repo do
       other -> other
     end
   end
-
-  # END:assert_absent_effect
 end

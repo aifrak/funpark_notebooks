@@ -1,0 +1,386 @@
+# Compose in Context with Monads
+
+```elixir
+Mix.install([
+  {:fun_park, path: "/mnt/funpark_lib"}
+])
+```
+
+## Advanced Functional Programming with Elixir
+
+|                                                                                                    |                                                                                                                                                                              |
+| -------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| <img src="https://www.joekoski.com/assets/images/jkelixir_small.jpg" alt="Book cover" width="120"> | **Interactive Examples from Chapter 6**<br/>[Advanced Functional Programming with Elixir](https://pragprog.com/titles/jkelixir/advanced-functional-programming-with-elixir). |
+
+## Build the Monad
+
+### Transform with a Functor
+
+````markdown
+```elixir
+def promotion(%__MODULE__{} = patron, points) do
+  change(patron, %{reward_points: patron.reward_points + points})
+end
+```
+````
+
+Let's start by generating a list of patrons:
+
+```elixir
+alice = FunPark.Patron.make("Alice", 14, 125, reward_points: 25)
+beth = FunPark.Patron.make("Beth", 15, 140, reward_points: 10)
+charles = FunPark.Patron.make("Charles", 13, 130, reward_points: 50)
+patrons = [alice, beth, charles]
+```
+
+With Elixir's `Enum.map/2` functor, we can apply `promotion/2` to each patron, adding 10 to their reward points:
+
+```elixir
+patrons |> Enum.map(&FunPark.Patron.promotion(&1, 10))
+```
+
+### Sequence Computations
+
+First, we need to define a Kleisli function:
+
+```elixir
+kleisli_fn = fn x -> if rem(x, 2) == 0, do: [x * x], else: [] end
+```
+
+Next, we need a list of values:
+
+```elixir
+list = [1, 2, 3, 4, 5, 6]
+```
+
+When we apply our Kleisli function:
+
+```elixir
+list |> Enum.flat_map(kleisli_fn)
+```
+
+### Independent Computations
+
+```elixir
+ap = fn values, funcs -> for f <- funcs, v <- values, do: f.(v) end
+```
+
+Next, we need a couple of simple functions, `add_one/1` and `add_two/1`:
+
+```elixir
+add_one = fn x -> x + 1 end
+add_two = fn x -> x + 2 end
+func_list = [add_one, add_two]
+```
+
+And we need a list of values:
+
+```elixir
+list = [10, 20, 30]
+```
+
+Finally, we use `ap` to apply our list of functions to our list of values:
+
+```elixir
+list |> ap.(func_list)
+```
+
+### The Protocol
+
+````markdown
+```elixir
+defprotocol FunPark.Monad do
+  def map(monad, function)
+  def bind(monad, function)
+  def ap(monad, function)
+end
+```
+````
+
+## Model Neutrality with Identity
+
+````markdown
+```elixir
+defmodule FunPark.Identity do
+  defstruct value: nil
+
+  def pure(value), do: %__MODULE__{value: value}
+  def extract(%__MODULE__{value: value}), do: value
+end
+```
+````
+
+Let's start by generating a patron:
+
+```elixir
+alice = FunPark.Patron.make("Alice", 14, 130)
+```
+
+We can lift Alice into the `Identity` context:
+
+```elixir
+alice_monad = FunPark.Identity.pure(alice)
+```
+
+And we can extract her:
+
+```elixir
+FunPark.Identity.extract(alice_monad)
+```
+
+In fact, we can pass anything through the `Identity` monad with no effect:
+
+```elixir
+:apple |> FunPark.Identity.pure() |> FunPark.Identity.extract()
+```
+
+### Equality
+
+````markdown
+```elixir
+defimpl FunPark.Eq, for: FunPark.Identity do
+  alias FunPark.Eq
+  alias FunPark.Identity
+
+  def eq?(%Identity{value: v1}, %Identity{value: v2}), do: Eq.eq?(v1, v2)
+  def not_eq?(%Identity{value: v1}, %Identity{value: v2}), do: Eq.not_eq?(v1, v2)
+end
+```
+````
+
+Let's start by generating a couple of patrons:
+
+```elixir
+alice = FunPark.Patron.make("Alice", 14, 130)
+beth = FunPark.Patron.make("Beth", 16, 125)
+```
+
+The `Eq` protocol knows when they are equivalent:
+
+```elixir
+FunPark.Eq.Utils.eq?(alice, alice)
+```
+
+```elixir
+FunPark.Eq.Utils.eq?(alice, beth)
+```
+
+Even when they're wrapped in the `Identity` monad:
+
+```elixir
+alice_monad = FunPark.Identity.pure(alice)
+beth_monad = FunPark.Identity.pure(beth)
+
+FunPark.Eq.Utils.eq?(alice_monad, alice_monad)
+```
+
+```elixir
+FunPark.Eq.Utils.eq?(alice_monad, beth_monad)
+```
+
+### Ordering
+
+````markdown
+```elixir
+defimpl FunPark.Ord, for: FunPark.Identity do
+  alias FunPark.Ord
+  alias FunPark.Identity
+
+  def lt?(%Identity{value: v1}, %Identity{value: v2}), do: Ord.lt?(v1, v2)
+  def le?(%Identity{value: v1}, %Identity{value: v2}), do: Ord.le?(v1, v2)
+  def gt?(%Identity{value: v1}, %Identity{value: v2}), do: Ord.gt?(v1, v2)
+  def ge?(%Identity{value: v1}, %Identity{value: v2}), do: Ord.ge?(v1, v2)
+end
+```
+````
+
+Again, let's generate our `Patrons`:
+
+```elixir
+alice = FunPark.Patron.make("Alice", 14, 135, ticket_tier: :vip)
+beth = FunPark.Patron.make("Beth", 16, 125)
+```
+
+The `Patron` context's default ordering is by name, so Alice is less than Beth:
+
+```elixir
+FunPark.Ord.Utils.compare(alice, beth)
+```
+
+It makes no difference if they are wrapped in `Identity` monads:
+
+```elixir
+alice_monad = FunPark.Identity.pure(alice)
+beth_monad = FunPark.Identity.pure(beth)
+
+FunPark.Ord.Utils.compare(alice_monad, beth_monad)
+```
+
+### Lift Eq and Order
+
+````markdown
+```elixir
+def lift_eq(custom_eq) do
+  custom_eq = Eq.Utils.to_eq_map(custom_eq)
+  
+  %{
+    eq?: fn %__MODULE__{value: v1}, %__MODULE__{value: v2} ->
+      custom_eq.eq?.(v1, v2)
+    end,
+    not_eq?: fn %__MODULE__{value: v1}, %__MODULE__{value: v2} ->
+      custom_eq.not_eq?.(v1, v2)
+    end
+  }
+end
+```
+````
+
+````markdown
+```elixir
+def lift_ord(custom_ord) do
+  custom_ord = Ord.Utils.to_ord_map(custom_ord)
+  
+  %{
+    lt?: fn %__MODULE__{value: v1}, %__MODULE__{value: v2} ->
+      custom_ord.lt?.(v1, v2)
+    end,
+    le?: fn %__MODULE__{value: v1}, %__MODULE__{value: v2} ->
+      custom_ord.le?.(v1, v2)
+    end,
+    gt?: fn %__MODULE__{value: v1}, %__MODULE__{value: v2} ->
+      custom_ord.gt?.(v1, v2)
+    end,
+    ge?: fn %__MODULE__{value: v1}, %__MODULE__{value: v2} ->
+      custom_ord.ge?.(v1, v2)
+    end
+  }
+end
+```
+````
+
+Let's return to our patrons:
+
+```elixir
+alice = FunPark.Patron.make("Alice", 14, 135, ticket_tier: :vip)
+beth = FunPark.Patron.make("Beth", 16, 125)
+```
+
+We have custom ordering based on priority:
+
+```elixir
+priority_ord = FunPark.Patron.ord_by_priority()
+```
+
+Within the context of priority, Alice—with her VIP status—is greater than Beth:
+
+```elixir
+FunPark.Ord.Utils.compare(alice, beth, priority_ord)
+```
+
+We can lift that `priority_ord` into the Identity context:
+
+```elixir
+lifted_priority_ord = FunPark.Identity.lift_ord(priority_ord)
+```
+
+And we get the same result for our wrapped patrons:
+
+```elixir
+alice_monad = FunPark.Identity.pure(alice)
+beth_monad = FunPark.Identity.pure(beth)
+
+FunPark.Ord.Utils.compare(alice_monad, beth_monad, lifted_priority_ord)
+```
+
+### Monadic Logic
+
+````markdown
+```elixir
+defimpl FunPark.Monad, for: FunPark.Identity do
+  def map(%FunPark.Identity{value: value}, function) do
+    %FunPark.Identity{value: function.(value)}
+  end
+
+  def bind(%FunPark.Identity{value: value}, function) do
+    function.(value)
+  end
+
+  def ap(%FunPark.Identity{value: function}, %FunPark.Identity{value: value}) do
+    %FunPark.Identity{value: function.(value)}
+  end
+end
+```
+````
+
+````markdown
+```elixir
+def add_wait_time(%__MODULE__{} = ride, minutes) when minutes >= 0 do
+  change(ride, %{wait_time: ride.wait_time + minutes})
+end
+```
+````
+
+Let's generate the Tea Cup ride:
+
+```elixir
+tea_cup = FunPark.Ride.make("Tea Cup", wait_time: 10)
+```
+
+We can add 20 minutes:
+
+```elixir
+FunPark.Ride.add_wait_time(tea_cup, 20)
+```
+
+And because `add_wait_time/2` is closed under its operation, we can use the pipe operator to compose multiple sensors:
+
+```elixir
+tea_cup 
+  |> FunPark.Ride.add_wait_time(20) 
+  |> FunPark.Ride.add_wait_time(10)
+  |> FunPark.Ride.add_wait_time(5)
+```
+
+The same applies within the `Identity` context. First, let's lift the Tea Cup ride:
+
+```elixir
+tea_cup_m = FunPark.Identity.pure(tea_cup)
+```
+
+To make things easier, we'll curry the `add_wait_time/2` function:
+
+```elixir
+add_wait = FunPark.Utils.curry_r(&FunPark.Ride.add_wait_time/2)
+```
+
+Now we can then apply it to the monad using `map/2`:
+
+```elixir
+FunPark.Monad.map(tea_cup_m, add_wait.(20))
+```
+
+And again, we can compose updates from three sensors:
+
+```elixir
+tea_cup_m 
+  |> FunPark.Monad.map(add_wait.(20)) 
+  |> FunPark.Monad.map(add_wait.(10)) 
+  |> FunPark.Monad.map(add_wait.(5))
+```
+
+Even so, we can model our sensors so they choose the structure:
+
+```elixir
+sensor_1 = &FunPark.Identity.pure(add_wait.(10).(&1))
+sensor_2 = &FunPark.Identity.pure(add_wait.(5).(&1))
+sensor_3 = &FunPark.Identity.pure(add_wait.(20).(&1))
+```
+
+We chain Kleisli functions with `bind/2`:
+
+```elixir
+tea_cup_m 
+|> FunPark.Monad.bind(sensor_1)
+|> FunPark.Monad.bind(sensor_2)
+|> FunPark.Monad.bind(sensor_3)
+```

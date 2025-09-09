@@ -1,3 +1,11 @@
+#---
+# Excerpted from "Advanced Functional Programming with Monads in Elixir",
+# published by The Pragmatic Bookshelf.
+# Copyrights apply to this code. It may not be used to create training material,
+# courses, books, articles, and the like. Contact us if you are in doubt.
+# We make no guarantees that this code is fit for any purpose.
+# Visit https://pragprog.com/titles/jkelixir for more book information.
+#---
 defmodule FunPark.Maintenance do
   import FunPark.Monad, only: [bind: 2, map: 2]
   alias FunPark.Errors.ValidationError
@@ -7,7 +15,6 @@ defmodule FunPark.Maintenance do
   alias FunPark.Ride
   alias FunPark.Maintenance.Store
 
-  # START:add_to_all
   def add_to_all(%Ride{} = ride) do
     ride
     |> Repo.add_schedule()
@@ -16,9 +23,6 @@ defmodule FunPark.Maintenance do
     |> bind(&Repo.add_compliance/1)
   end
 
-  # END:add_to_all
-
-  # START:remove_from_all
   def remove_from_all(%Ride{} = ride) do
     Either.sequence_a([
       Repo.remove_schedule(ride),
@@ -29,9 +33,6 @@ defmodule FunPark.Maintenance do
     |> map(fn _ -> ride end)
   end
 
-  # END:remove_from_all
-
-  # START:check_in_all
   def check_in_all(%Ride{} = ride) do
     ride
     |> Repo.in_schedule()
@@ -41,9 +42,6 @@ defmodule FunPark.Maintenance do
     |> Effect.run(%{store: Store})
   end
 
-  # END:check_in_all
-
-  # START:check_online_bind
   def check_online_bind(%Ride{} = ride) do
     ride
     |> Repo.not_in_schedule()
@@ -53,9 +51,6 @@ defmodule FunPark.Maintenance do
     |> Effect.run(%{store: Store})
   end
 
-  # END:check_online_bind
-
-  # START:check_online
   def check_online(%Ride{} = ride) do
     Effect.validate(ride, [
       &Repo.not_in_schedule/1,
@@ -66,23 +61,15 @@ defmodule FunPark.Maintenance do
     |> Effect.run(%{store: Store})
   end
 
-  # END:check_online
-
-  # START:online?
   def online?(%Ride{} = ride) do
     ride
     |> check_online()
     |> Either.right?()
   end
 
-  # END:online?
-
-  # START:ensure_online
   def ensure_online(%Ride{} = ride) do
     ride
     |> check_online()
     |> Either.map_left(&ValidationError.new/1)
   end
-
-  # END:ensure_online
 end

@@ -97,22 +97,40 @@ services:
       LIVEBOOK_DEFAULT_RUNTIME: "attached:funx@funxapp.local:secret-cookie"
 ```
 
-### 4. Critical Technical Details
+### 4. Current Architecture (UPDATED)
 
-**Erlang Distribution Requirements:**
-- Use `--name` (not `--sname`) with FQDN: `funx@funxapp.local`
-- Match hostnames exactly across containers
-- Use consistent cookie across both containers
-- Don't expose EPMD port 4369 (conflicts with host)
+**Simplified Approach - Mix.install per user:**
+- Single Livebook container with multi-user support
+- Each student forks notebooks and gets isolated runtime via Mix.install
+- FunPark library mounted read-only as `/mnt/funpark_lib`
 
-**Livebook Version Compatibility:**
-- Use Livebook 0.17.1+ for Elixir 1.18.4 support
-- Older versions (0.14.7) only support Elixir ~> 1.17.0
+**Docker setup:**
+```yaml
+services:
+  livebook:
+    image: ghcr.io/livebook-dev/livebook:0.17.1
+    environment:
+      LIVEBOOK_MULTI_USER: "true"
+      LIVEBOOK_TOKEN_ENABLED: "true"
+      LIVEBOOK_PASSWORD: "student2024!"
+    volumes:
+      - ./chapters:/data/chapters:ro           # Read-only source notebooks
+      - ./funpark_lib:/mnt/funpark_lib:ro      # Read-only library code
+```
 
-**Content Separation:**
-- No `Mix.install([])` in Livebooks - modules loaded from attached runtime
-- Display-only code uses ````markdown wrapper with ```elixir inside
-- Executable code uses regular Elixir cells
+**Notebook pattern:**
+```elixir
+Mix.install([
+  {:fun_park, path: "/mnt/funpark_lib"}
+])
+```
+
+**Benefits:**
+- Each student gets isolated runtime when they fork
+- No complex distributed Erlang setup
+- Students can experiment without affecting others
+- Authentication captures user emails
+- Simple management and debugging
 
 ### 5. Testing Commands Locally
 
@@ -121,28 +139,64 @@ Before Docker, test Elixir distributed node commands:
 elixir --name funx@funxapp.local --cookie secret-cookie --erl "-kernel inet_dist_listen_min 9000 inet_dist_listen_max 9000" -S mix run --no-halt
 ```
 
-### 6. Extraction Principles
+### 6. Extraction Principles (REFINED)
 
-- **Minimal business context only**: Just enough FunPark context for code to make sense - no more
-- **Skip ALL theory**: No functional programming, no DDD, no design patterns - that's all in the book
-- **Be literal with code**: Don't paraphrase or modify the actual code examples
-- **Terse explanations**: One sentence max per concept (e.g., "FastPasses manage demand for popular rides")
-- **Focus on hands-on**: Students execute actual commands, see real results
-- **No methodology explanations**: Don't explain why we use certain approaches, just what things are
-- **Attribution pattern**: Always include book cover + chapter reference table at the top
-- **Business facts only**: What entities do, not how they're designed or why they matter conceptually
+**Core Rule**: This is a supplement to the book, not a replacement. Assume students have the book for all explanations.
+
+**What to Extract:**
+- All iex examples from `{:style="shaded"}` blocks - these become executable Elixir cells
+- Embedded code references (like `<embed file="..."/>`) - these become display-only markdown blocks
+- Just enough FunPark story context to make the iex examples meaningful
+
+**What NOT to Extract:**
+- Technical explanations (protocols, DDD, functional programming theory) - that's in the book
+- Domain expert methodology ("After talking with our Ride expert") - that's DDD teaching, belongs in book
+- Expected output from iex examples - students will see real output by executing
+- Business justifications or architectural reasoning - that's all covered in the book
+
+**Context Pattern (Follow Chapter 4 Monoid as Gold Standard):**
+- Use the book's EXACT language for action/result descriptions
+- "Use `Monoid.wrap/2` to lift raw values into the monoid context:" (direct from book)
+- "And `max/1` solves our `Ride` expert's daily report from a ride's wait time log:" (direct from book)
+- "The Max Monoid also works when there is only a single patron in the list:" (direct from book)
+
+**Style Guidelines:**
+- Use the book's precise wording for context around iex examples
+- Action + expected result pattern, using book language
+- Remove all DDD language ("expert", "bounded context", "domain") UNLESS it's part of the exact book text
+- Remove all functional programming concepts explanations
+- Keep business entity facts: "Rides have names", "FastPasses have times", "Patrons have ticket tiers"
+- Extract the book's narrative language around examples verbatim
+
+**Complete iex Coverage:**
+- Extract ALL iex examples from the chapter, even if they seem repetitive
+- Some examples test edge cases or show progression (like Alice upgrading tickets)
+- Each iex command becomes one Elixir cell (don't combine multiple commands)
 
 ### 7. File Structure
 
 ```
 /chapters/
   chap_01_funpark.livemd    # Chapter 1 interactive examples
-  chap_02_*.livemd          # Future chapters...
+  chap_02_eq.livemd         # Chapter 2 equality examples
+  chap_03_ord.livemd        # Chapter 3 ordering examples  
+  chap_04_monoid.livemd     # Chapter 4 monoid examples (GOLD STANDARD)
   
-docker-compose.yml          # Two-container setup
-Dockerfile                  # Builds funxapp with compiled project
+docker-compose.yml          # Single-container setup with multi-user
 BOOK.md                     # Source material (don't modify)
 lib/                        # Source code (don't modify)
 ```
+
+### 8. Chapter 4 Monoid as the Perfect Example
+
+**chap_04_monoid.livemd** represents the ideal extraction pattern:
+
+- **Exact book language**: Uses phrases directly from BOOK.md like "Use `Monoid.wrap/2` to lift raw values into the monoid context"
+- **Minimal context**: Only includes action/result language from the book, no additional explanations
+- **Complete iex coverage**: Every iex example from the chapter is included as executable cells
+- **Proper code separation**: Display-only code in markdown blocks, executable examples in Elixir cells
+- **Book attribution**: Standard header with cover image and chapter reference
+
+**Use this as the template for all future chapters.** When extracting new chapters, refer to chap_04_monoid.livemd for the exact style and approach.
 
 This pattern ensures students get hands-on experience with the actual compiled modules while maintaining clear separation between book content (explanatory) and Livebook content (interactive).

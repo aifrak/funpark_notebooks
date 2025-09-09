@@ -1,37 +1,31 @@
+#---
+# Excerpted from "Advanced Functional Programming with Monads in Elixir",
+# published by The Pragmatic Bookshelf.
+# Copyrights apply to this code. It may not be used to create training material,
+# courses, books, articles, and the like. Contact us if you are in doubt.
+# We make no guarantees that this code is fit for any purpose.
+# Visit https://pragprog.com/titles/jkelixir for more book information.
+#---
 defmodule FunPark.Store do
   import FunPark.Monad
   alias FunPark.Monad.Either
-
-  # START:create_table
   def create_table(table) when is_atom(table) do
     Either.from_try(fn ->
       :ets.new(table, [:named_table, :set, :public])
     end)
   end
-
-  # END:create_table
-
-  # START:drop_table
   def drop_table(table) when is_atom(table) do
     Either.from_try(fn ->
       :ets.delete(table)
     end)
     |> map(fn _ -> table end)
   end
-
-  # END:drop_table
-
-  # START:insert_item
   def insert_item(table, %{id: id} = item) when is_atom(table) do
     Either.from_try(fn ->
       :ets.insert(table, {id, Map.from_struct(item)})
     end)
     |> map(fn _ -> item end)
   end
-
-  # END:insert_item
-
-  # START:get_item
   def get_item(table, id) when is_atom(table) do
     Either.from_try(fn ->
       :ets.lookup(table, id)
@@ -41,10 +35,6 @@ defmodule FunPark.Store do
       [] -> Either.left(:not_found)
     end)
   end
-
-  # END:get_item
-
-  # START:get_all_items
   def get_all_items(table) when is_atom(table) do
     Either.from_try(fn ->
       :ets.tab2list(table)
@@ -53,16 +43,10 @@ defmodule FunPark.Store do
       Enum.map(items, fn {_, item} -> item end)
     end)
   end
-
-  # END:get_all_items
-
-  # START:delete_item
   def delete_item(table, id) when is_atom(table) do
     Either.from_try(fn ->
       :ets.delete(table, id)
     end)
     |> map(fn _ -> id end)
   end
-
-  # END:delete_item
 end
