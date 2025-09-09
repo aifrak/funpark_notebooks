@@ -1,0 +1,32 @@
+# Elixir build artifacts
+/_build
+/deps
+
+# Static analysis and coverage
+/cover
+/.elixir_ls
+/.plt
+*.plt
+*.plt.*
+
+# Dialyzer
+dialyzer.ignore-warnings
+
+# Test reports
+/test-*.xml
+/excoveralls.json
+
+# Local configuration
+/config/*.secret.exs
+.env
+.env.*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Livebook or IEx temp files
+*.livemd~  
+*.swp
+
+BOOK.md

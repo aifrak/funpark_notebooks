@@ -1,0 +1,423 @@
+# Implement Domain-Specific Equality with Protocols
+
+## Advanced Functional Programming with Elixir
+
+|                                                                                                    |                                                                                                                                                                              |
+| -------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| <img src="https://www.joekoski.com/assets/images/jkelixir_small.jpg" alt="Book cover" width="120"> | **Interactive Examples from Chapter 2**<br/>[Advanced Functional Programming with Elixir](https://pragprog.com/titles/jkelixir/advanced-functional-programming-with-elixir). |
+
+## Polymorphic Equality
+
+````markdown
+```elixir
+defprotocol FunPark.Eq do
+  def eq?(a, b)
+  def not_eq?(a, b)
+end
+```
+````
+
+````markdown
+```elixir
+defimpl FunPark.Eq, for: Any do
+  def eq?(a, b), do: a == b
+  def not_eq?(a, b), do: a != b
+end
+```
+````
+
+```elixir
+1 == 1
+```
+
+```elixir
+1 == 2
+```
+
+```elixir
+FunPark.Eq.eq?(1, 1)
+```
+
+```elixir
+FunPark.Eq.eq?(1, 2)
+```
+
+## Implement Equality for FunPark Contexts
+
+````markdown
+```elixir
+def change(%__MODULE__{} = patron, attrs) when is_map(attrs) do
+  attrs = Map.delete(attrs, :id)
+  struct(patron, attrs)
+end
+```
+````
+
+Create a patron named Alice:
+
+```elixir
+alice_a = FunPark.Patron.make("Alice", 15, 150)
+```
+
+Alice decides to update her ticket to `:premium`:
+
+```elixir
+alice_b = FunPark.Patron.change(alice_a, %{ticket_tier: :premium})
+```
+
+From Elixir's perspective, `alice_a` and `alice_b` are not equal:
+
+```elixir
+alice_a == alice_b
+```
+
+However, within the `Patron` context, this is wrong. Upgrading Alice's ticket doesn't make her a different patron; it just reflects a change in her attributes.
+
+### Implement the Eq Protocol
+
+````markdown
+```elixir
+defimpl FunPark.Eq, for: FunPark.Patron do
+  alias FunPark.Eq
+  alias FunPark.Patron
+  def eq?(%Patron{id: v1}, %Patron{id: v2}), do: Eq.eq?(v1, v2)
+  def not_eq?(%Patron{id: v1}, %Patron{id: v2}), do: Eq.not_eq?(v1, v2)
+end
+```
+````
+
+First, let's regenerate our `Patron` structs:
+
+```elixir
+alice_a = FunPark.Patron.make("Alice", 15, 150)
+alice_b = FunPark.Patron.change(alice_a, %{ticket_tier: :premium})
+```
+
+And FunPark knows that although these are different records, they refer to the same `Patron`:
+
+```elixir
+FunPark.Eq.eq?(alice_a, alice_b)
+```
+
+### Ride Eq
+
+````markdown
+```elixir
+def change(%__MODULE__{} = ride, attrs) when is_map(attrs) do
+  attrs = Map.delete(attrs, :id)
+  struct(ride, attrs)
+end
+```
+````
+
+````markdown
+```elixir
+defimpl FunPark.Eq, for: FunPark.Ride do
+  alias FunPark.Eq
+  alias FunPark.Ride
+  def eq?(%Ride{id: v1}, %Ride{id: v2}), do: Eq.eq?(v1, v2)
+  def not_eq?(%Ride{id: v1}, %Ride{id: v2}), do: Eq.not_eq?(v1, v2)
+end
+```
+````
+
+Let's generate a ride:
+
+```elixir
+ride_a = FunPark.Ride.make("Dark Mansion", min_age: 14, tags: [:dark])
+```
+
+And update the wait time to 20 minutes:
+
+```elixir
+ride_b = FunPark.Ride.change(ride_a, %{wait_time: 20})
+```
+
+Again, from Elixir's perspective, these are not equal:
+
+```elixir
+ride_a == ride_b
+```
+
+But from the Ride context, updating the wait time does not make them different rides:
+
+```elixir
+FunPark.Eq.eq?(ride_a, ride_b)
+```
+
+### FastPass Eq
+
+````markdown
+```elixir
+def change(%__MODULE__{} = fast_pass, attrs) when is_map(attrs) do
+  attrs = Map.delete(attrs, :id)
+  struct(fast_pass, attrs)
+end
+```
+````
+
+````markdown
+```elixir
+defimpl FunPark.Eq, for: FunPark.FastPass do
+  alias FunPark.Eq
+  alias FunPark.FastPass
+  def eq?(%FastPass{id: v1}, %FastPass{id: v2}), do: Eq.eq?(v1, v2)
+  def not_eq?(%FastPass{id: v1}, %FastPass{id: v2}), do: Eq.not_eq?(v1, v2)
+end
+```
+````
+
+Generate a fast pass:
+
+```elixir
+tea_cup = FunPark.Ride.make("Tea Cup")
+datetime = DateTime.new!(~D[2025-06-01], ~T[13:00:00])
+pass_a = FunPark.FastPass.make(tea_cup, datetime)
+```
+
+Now update the ride on that pass:
+
+```elixir
+haunted_mansion = FunPark.Ride.make("Haunted Mansion")
+pass_b = FunPark.FastPass.change(pass_a, %{ride: haunted_mansion})
+```
+
+Elixir sees the difference:
+
+```elixir
+pass_a == pass_b
+```
+
+But our `Eq` implementation focuses only on ID and treats them as equal:
+
+```elixir
+FunPark.Eq.eq?(pass_a, pass_b)
+```
+
+## Transform Inputs Before Matching
+
+After implementing the logic for fast passes, our `Patron` expert points out a problem—a patron can't be in two places at once. From their perspective, two passes scheduled for the same time are effectively duplicates.
+
+````markdown
+```elixir
+defmodule FunPark.Eq.Utils do
+  alias FunPark.Eq
+
+  def contramap(f) do
+    %{
+      eq?: fn a, b -> Eq.eq?(f.(a), f.(b)) end,
+      not_eq?: fn a, b -> Eq.not_eq?(f.(a), f.(b)) end
+    }
+  end
+end
+```
+````
+
+````markdown
+```elixir
+def get_time(%__MODULE__{time: time}), do: time
+
+def eq_time do
+  Eq.Utils.contramap(&get_time/1)
+end
+```
+````
+
+Create the rides:
+
+```elixir
+mansion = FunPark.Ride.make("Dark Mansion", min_age: 14, tags: [:dark])
+tea_cup = FunPark.Ride.make("Tea Cup")
+```
+
+Generate a fast pass for the Dark Mansion:
+
+```elixir
+datetime = DateTime.new!(~D[2025-06-01], ~T[13:00:00])
+fast_pass_a = FunPark.FastPass.make(mansion, datetime)
+```
+
+Generate another Fast Pass for the Tea Cup using the same time:
+
+```elixir
+fast_pass_b = FunPark.FastPass.make(tea_cup, datetime)
+```
+
+Our default equality check knows these are different (they have different ids):
+
+```elixir
+FunPark.Eq.eq?(fast_pass_a, fast_pass_b)
+```
+
+But our new custom equality knows they have the same time:
+
+```elixir
+FunPark.FastPass.eq_time().eq?.(fast_pass_a, fast_pass_b)
+```
+
+### Simplify Equality Checks
+
+````markdown
+```elixir
+def eq?(a, b, eq \\ Eq) do
+  eq = to_eq_map(eq)
+  eq.eq?.(a, b)
+end
+```
+````
+
+Let's regenerate our passes:
+
+```elixir
+mansion = FunPark.Ride.make("Dark Mansion", min_age: 14, tags: [:dark])
+tea_cup = FunPark.Ride.make("Tea Cup")
+datetime = DateTime.new!(~D[2025-06-01], ~T[13:00:00])
+fast_pass_a = FunPark.FastPass.make(mansion, datetime)
+fast_pass_b = FunPark.FastPass.make(tea_cup, datetime)
+```
+
+From the context of `FastPass`, the passes have different ID's, so they are different:
+
+```elixir
+FunPark.Eq.Utils.eq?(fast_pass_a, fast_pass_b)
+```
+
+But we can inject our `eq_time/0` logic to determine they are scheduled for the same time:
+
+```elixir
+has_eq_time = FunPark.FastPass.eq_time()
+FunPark.Eq.Utils.eq?(fast_pass_a, fast_pass_b, has_eq_time)
+```
+
+## Harness Equality for Collections
+
+### Unique
+
+FunPark tracks the number of patrons entering per day, but some patrons leave and re-enter, so we need a unique count.
+
+````markdown
+```elixir
+def uniq(list, eq \\ Eq) do
+  eq = Utils.to_eq_map(eq)
+
+  Enum.reduce(list, [], fn item, acc ->
+    if Enum.any?(acc, &eq.eq?.(item, &1)) do
+      acc
+    else
+      acc ++ [item]
+    end
+  end)
+end
+```
+````
+
+First, let's make two copies of Alice:
+
+```elixir
+alice_a = FunPark.Patron.make("Alice", 15, 50)
+alice_b = FunPark.Patron.change(alice_a, %{ticket_tier: :premium})
+FunPark.List.uniq([alice_a, alice_b])
+```
+
+Even though `alice_a` and `alice_b` have different ticket tiers, they share the same ID. Since `uniq/1` is context-aware, it used the `Eq` implementation for `Patron` and removed the second entry.
+
+### Union
+
+FunPark tracks ride downtime from multiple sources, including scheduled maintenance and unexpected breakdowns. At the end of the day, we need to combine these logs to generate a unique list of rides that were offline.
+
+````markdown
+```elixir
+def union(list_a, list_b, eq \\ Eq) do
+  uniq(list_a ++ list_b, eq)
+end
+```
+````
+
+```elixir
+tea_cup = FunPark.Ride.make("Tea Cup")
+haunted_mansion = FunPark.Ride.make("Haunted Mansion")
+apple_cart = FunPark.Ride.make("Apple Cart")
+
+maintenance_log = [haunted_mansion, apple_cart]
+breakdown_log = [tea_cup, haunted_mansion]
+
+FunPark.List.union(maintenance_log, breakdown_log)
+```
+
+This combines both lists into one, removing duplicates based on the `Ride`'s `Eq` implementation.
+
+### Intersection
+
+FunPark adjusts incentives to balance crowd flow, steering guests away from overbooked rides. By intersecting rides with the longest wait times and rides with the most Fast Pass bookings, we identify high-demand attractions.
+
+````markdown
+```elixir
+def intersection(list_a, list_b, eq \\ Eq) do
+  eq = Utils.to_eq_map(eq)
+
+  Enum.filter(list_a, fn item_a ->
+    Enum.any?(list_b, &eq.eq?.(item_a, &1))
+  end)
+  |> uniq(eq)
+end
+```
+````
+
+The Haunted Mansion is in high demand:
+
+```elixir
+long_wait = [haunted_mansion, apple_cart]
+most_fast_pass = [tea_cup, haunted_mansion]
+
+FunPark.List.intersection(long_wait, most_fast_pass)
+```
+
+### Difference
+
+Not all rides in FunPark are accessible to every patron. We can use difference to subtract restricted rides from the full list, identifying attractions available to all guests.
+
+````markdown
+```elixir
+def difference(list_a, list_b, eq \\ Eq) do
+  eq = Utils.to_eq_map(eq)
+
+  Enum.filter(list_a, fn item_a ->
+    not Enum.any?(list_b, &eq.eq?.(item_a, &1))
+  end)
+end
+```
+````
+
+Apple Cart is available to everyone:
+
+```elixir
+all_rides = [haunted_mansion, apple_cart]
+restricted_rides = [haunted_mansion]
+
+FunPark.List.difference(all_rides, restricted_rides)
+```
+
+### Subset
+
+FunPark needs to track if guests made full use of their Fast Passes. We can check if every eligible ride was used by verifying that the patron's Fast Pass list is a subset of the rides they rode.
+
+````markdown
+```elixir
+def subset?(list_a, list_b, eq \\ Eq) do
+  eq = Utils.to_eq_map(eq)
+
+  Enum.all?(list_a, fn item_a ->
+    Enum.any?(list_b, &eq.eq?.(item_a, &1))
+  end)
+end
+```
+````
+
+We find that our patron has indeed completed all of their Fast Pass rides:
+
+```elixir
+fast_pass_rides = [tea_cup]
+rides_completed = [haunted_mansion, tea_cup]
+
+FunPark.List.subset?(fast_pass_rides, rides_completed)
+```
