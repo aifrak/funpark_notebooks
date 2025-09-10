@@ -43,3 +43,11 @@ If you want to run the notebooks in your local Docker environment, follow these 
    ```
 
 I prefer running groups of notebooks locally using Docker, but for most users, the launch links above are the fastest way to explore each chapter.
+
+## Ecosystem
+
+- **[Advanced Functional Programming with Elixir](https://pragprog.com/titles/jkelixir/advanced-functional-programming-with-elixir)** — a book that provides the structured learning path and theory.
+- **[Interactive Livebooks](https://github.com/JKWA/funpark_notebooks)** — notebooks for every chapter, runnable in your browser or with Docker.
+- **[Funx library](https://hex.pm/packages/funx)** — universal functional patterns in Elixir, with usage rules for LLMs.  
+- **[Learn Funx](https://github.com/JKWA/learn_funx)** — a practice environment for using your LLM as a tutor.  
+- **[Discord](https://discord.gg/mFaCAy9Sqd)** — community space to discuss *Advanced Functional Programming with Elixir* (the book), the Funx library, and Learn Funx.
