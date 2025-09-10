@@ -42,4 +42,4 @@ If you want to run the notebooks in your local Docker environment, follow these 
    funpark_12char
    ```
 
-This is only needed if you want to run the notebooks locally using Docker. For most users, the Launch links above are the fastest way to explore each chapter.
+I prefer running groups of notebooks locally using Docker, but for most users, the launch links above are the fastest way to explore each chapter.
