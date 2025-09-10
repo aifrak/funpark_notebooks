@@ -1,40 +1,34 @@
-# Book Examples
+# FunPark Interactive Examples
 
+[![Run in Livebook](https://livebook.dev/badge/v1/pink.svg)](https://livebook.dev/run?url=https%3A%2F%2Fgithub.com%2FJKWA%2Ffunpark_notebooks%2Fblob%2Fmain%2Flivebook.yaml)
 
-## Livebook
+Interactive notebooks for [**Advanced Functional Programming with Elixir**](https://pragprog.com/titles/jkelixir/advanced-functional-programming-with-elixir).  
+Click the badge above to open the examples instantly in [Livebook](https://livebook.dev) — no setup required.
 
-If you'd like to experiment in a visual environment, try [Livebook](https://hexdocs.pm/livebook/readme.html)!
+---
 
-![](./images/learn_funx_livebook.png)
+## What’s Inside
+- Executable examples from the book  
+- Protocols, monads, and functional patterns in Elixir  
+- Ten chapters as interactive notebooks  
+- Run, edit, and experiment directly in your browser  
 
-1. Start the Livebook container with Docker Compose:
-    - ```sh
-      docker compose up --detach
-      ```
-2. Run the local application
-    - ```sh
-      iex --name learn_funx@host.docker.internal --cookie learn_funx -S mix run
-      ```
-3. Open `http://localhost:8090/`
-4. Experiment!
+---
 
-You can copy Livebook files between your host machine and the container:
-```sh
-# From host to container
-docker cp ./livebooks livebook:/data
+## Running in Livebook
+After clicking the badge:
+1. You’ll see a project dashboard with all 10 chapters  
+2. Select any chapter to open its notebook  
+3. Run code cells with `Ctrl+Enter` or the ▶ button  
+4. Modify, break, and explore freely  
 
-# From container to host
-docker cp livebook:/data ./livebooks
-```
+---
 
-### Troubleshooting Livebook
+## Local Setup (Optional)
 
-If needed, you can reset things with:
-```sh
-docker compose up --detach --remove-orphans --renew-anon-volumes --force-recreate
-```
+These notebooks run best in the hosted Livebook service, but you can also run them locally.  
+- Install [Livebook](https://livebook.dev/#install)  
+- Clone this repository  
+- Open the notebooks in the `chapters/` folder  
 
-If you use a non-Docker container runtime (like Podman) and run into issues, you may need to update your `/etc/hosts` file to include a local entry for `host.docker.internal`. For example:
-```
-127.0.0.1 host.docker.internal
-```
+If you prefer Docker Compose, see [LOCAL_DEV.md](./LOCAL_DEV.md) for full container instructions.  
