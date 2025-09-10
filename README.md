@@ -1,9 +1,9 @@
 # FunPark Interactive Examples
 
-[![Run in Livebook](https://livebook.dev/badge/v1/pink.svg)](https://livebook.dev/run?url=https%3A%2F%2Fgithub.com%2FJKWA%2Ffunpark_notebooks%2Fblob%2Fmain%2Flivebook.yaml)
+[![Run in Livebook](https://livebook.dev/badge/v1/pink.svg)](https://livebook.dev/run?url=https%3A%2F%2Fgithub.com%2FJKWA%2Ffunpark_notebooks%2Fblob%2Fmain%2Fchapters%2Findex.livemd)
 
 Interactive notebooks for [**Advanced Functional Programming with Elixir**](https://pragprog.com/titles/jkelixir/advanced-functional-programming-with-elixir).  
-Click the badge above to open the examples instantly in [Livebook](https://livebook.dev) — no setup required.
+Click the badge above to launch the examples instantly in [Livebook](https://livebook.dev) — no setup required.
 
 ---
 
@@ -16,11 +16,15 @@ Click the badge above to open the examples instantly in [Livebook](https://liveb
 ---
 
 ## Running in Livebook
-After clicking the badge:
-1. You’ll see a project dashboard with all 10 chapters  
-2. Select any chapter to open its notebook  
-3. Run code cells with `Ctrl+Enter` or the ▶ button  
-4. Modify, break, and explore freely  
+Click the badge above or use this link:
+
+➡️ [Open project in Livebook](https://livebook.dev/run?url=https%3A%2F%2Fgithub.com%2FJKWA%2Ffunpark_notebooks%2Fblob%2Fmain%2Fchapters%2Findex.livemd)
+
+This opens an interactive index page with:
+1. Links to all 10 chapters organized by topic  
+2. Instructions for using the notebooks  
+3. Background on the book and FunPark library  
+4. Click any chapter link to start experimenting  
 
 ---
 

@@ -1,0 +1,87 @@
+# FunPark Interactive Examples
+
+<!-- livebook:{"persist_outputs":true} -->
+
+## Welcome to Advanced Functional Programming with Elixir
+
+This collection contains **interactive examples** from the book "Advanced Functional Programming with Elixir" by Joseph Koski. Each chapter demonstrates key functional programming concepts through hands-on experimentation with the **FunPark** library.
+
+**Perfect for:**
+- Running book examples without setup hassles
+- Experimenting and modifying code safely  
+- Seeing real output from working implementations
+- Understanding protocols, monads, and functional patterns
+
+---
+
+## How to Use These Notebooks
+
+1. **Click any chapter link below** to open the interactive examples
+2. **Run code cells** with `Ctrl+Enter` or the ▶ button
+3. **Experiment freely** - modify examples and see what happens
+4. **No setup required** - everything runs in your browser
+
+---
+
+## Interactive Chapters
+
+### Foundation Concepts
+
+* **[Chapter 1: Build FunPark - Model Real-World Data](chap_01_funpark.livemd)** 
+  Create the core FunPark domain with rides, patrons, and fast passes
+
+* **[Chapter 2: Implement Domain-Specific Equality with Protocols](chap_02_eq.livemd)**
+  Build flexible equality comparisons using Elixir protocols
+
+* **[Chapter 3: Create Flexible Ordering with Protocols](chap_03_ord.livemd)**
+  Implement custom sorting and comparison logic
+
+### Functional Composition
+
+* **[Chapter 4: Combine with Monoids](chap_04_monoid.livemd)**
+  Master associative operations and identity elements
+
+* **[Chapter 5: Define Logic with Predicates](chap_05_predicate.livemd)**  
+  Build composable boolean logic for complex conditions
+
+* **[Chapter 6: Compose in Context with Monads](chap_06_monad.livemd)**
+  Learn the fundamentals of monadic composition
+
+### Practical Monads
+
+* **[Chapter 7: Access Shared Environment with Reader](chap_07_reader.livemd)**
+  Manage configuration and shared context elegantly
+
+* **[Chapter 8: Manage Absence with Maybe](chap_08_maybe.livemd)**
+  Handle optional values without null pointer errors
+
+* **[Chapter 9: Model Outcomes with Either](chap_09_either.livemd)**
+  Represent success and failure cases explicitly
+
+* **[Chapter 10: Coordinate Tasks with Effect](chap_10_effect.livemd)**
+  Orchestrate complex operations with error handling
+
+---
+
+## About the Book
+
+These examples come from **"Advanced Functional Programming with Elixir"** published by [The Pragmatic Bookshelf](https://pragprog.com/titles/jkelixir/advanced-functional-programming-with-elixir).
+
+The book provides the complete explanations, theory, and context for these examples. The notebooks let you run and experiment with the concepts hands-on.
+
+---
+
+## Setup Code
+
+Each chapter notebook includes this setup to install the FunPark library:
+
+```elixir
+Mix.install([
+  {:fun_park,
+    git: "https://github.com/JKWA/funpark_notebooks.git",
+    branch: "main"
+  }
+])
+```
+
+**Ready to explore?** Click any chapter link above to start experimenting!
