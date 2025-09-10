@@ -5,9 +5,6 @@
 | <img src="https://www.joekoski.com/assets/images/jkelixir_small.jpg" alt="Book cover" width="120"> | **Interactive notebooks companion to**<br/>[Advanced Functional Programming with Elixir](https://pragprog.com/titles/jkelixir/advanced-functional-programming-with-elixir). |
 
 
-This collection contains the hands-on examples from the book.  
-Each chapter demonstrates a key concept, using the FunPark domain to make abstract functional ideas concrete and testable.
-
 ## How to Use These Notebooks
 
 1. Click a chapter link below to open the examples in Livebook  
