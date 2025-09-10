@@ -1,5 +1,7 @@
 # Define Logic with Predicates
 
+[← Back to Index](index.livemd)
+
 ```elixir
 Mix.install([
   {:fun_park,
@@ -621,3 +623,7 @@ This lets us convert branching logic into a single result:
 ```elixir
 yes_or_no.(tea_cup, &FunPark.Ride.suggested?/1)
 ```
+
+---
+
+[Next Chapter: Compose in Context with Monads →](chap_06_monad.livemd)

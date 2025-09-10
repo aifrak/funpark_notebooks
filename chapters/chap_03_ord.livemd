@@ -1,5 +1,7 @@
 # Create Flexible Ordering with Protocols
 
+[← Back to Index](index.livemd)
+
 ```elixir
 Mix.install([
   {:fun_park,
@@ -411,3 +413,7 @@ And with `reverse/1`, we can invert the logic so higher ticket tiers come first:
 reverse_ticket_ord = FunPark.Ord.Utils.reverse(ticket_ord)
 FunPark.List.sort([alice, beth], reverse_ticket_ord)
 ```
+
+---
+
+[Next Chapter: Combine with Monoids →](chap_04_monoid.livemd)

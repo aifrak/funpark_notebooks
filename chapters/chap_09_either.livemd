@@ -1,5 +1,7 @@
 # Model Outcomes with Either
 
+[← Back to Index](index.livemd)
+
 ```elixir
 Mix.install([
   {:fun_park,
@@ -845,3 +847,7 @@ Also, it doesn't care why there are no rides—just that the outcome is an empty
 ```elixir
 FunPark.Ride.Repo.list()
 ```
+
+---
+
+[Next Chapter: Coordinate Tasks with Effect →](chap_10_effect.livemd)

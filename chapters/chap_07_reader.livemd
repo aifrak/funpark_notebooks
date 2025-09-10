@@ -1,5 +1,7 @@
 # Access Shared Environment with Reader
 
+[← Back to Index](index.livemd)
+
 ```elixir
 Mix.install([
   {:fun_park,
@@ -208,3 +210,7 @@ Using the Reader, we run the deferred ride with its config:
 ```elixir
 apple = FunPark.Reader.run(deferred_apple, apple_config)
 ```
+
+---
+
+[Next Chapter: Manage Absence with Maybe →](chap_08_maybe.livemd)

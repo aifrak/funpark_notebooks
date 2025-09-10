@@ -1,5 +1,7 @@
 # Manage Absence with Maybe
 
+[← Back to Index](index.livemd)
+
 ```elixir
 Mix.install([
   {:fun_park,
@@ -1050,3 +1052,7 @@ def add_fast_pass_maybe(%__MODULE__{} = patron, %FastPass{} = fast_pass) do
 end
 ```
 ````
+
+---
+
+[Next Chapter: Model Outcomes with Either →](chap_09_either.livemd)
