@@ -2,7 +2,11 @@
 
 ```elixir
 Mix.install([
-  {:fun_park, path: "/mnt/funpark_lib"}
+  {:fun_park,
+    git: "https://github.com/JKWA/funpark_notebooks.git",
+    branch: "main",
+    sparse: "code"
+  }
 ])
 ```
 
