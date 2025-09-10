@@ -1,7 +1,5 @@
 # Build FunPark: Model Real-World Data
 
-[← Back to Index](index.livemd)
-
 ```elixir
 Mix.install([
   {:fun_park,
@@ -143,7 +141,3 @@ Create a patron named Alice with a FastPass:
 ```elixir
 FunPark.Patron.make("Alice", 15, 120, fast_passes: [fast_pass])
 ```
-
----
-
-[Next Chapter: Implement Domain-Specific Equality with Protocols →](chap_02_eq.livemd)

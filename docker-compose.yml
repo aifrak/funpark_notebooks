@@ -9,10 +9,9 @@ services:
       - "8091:8081"
     environment:
       LIVEBOOK_MULTI_USER: "true"
-      LIVEBOOK_TOKEN_ENABLED: "true"
+      LIVEBOOK_PASSWORD: "funpark_12char"
       LIVEBOOK_DEFAULT_DIR: "/data/chapters"
       LIVEBOOK_HOME: "/data"
     volumes:
       - ./chapters:/data/chapters:ro
-      - ./:/mnt/funpark_lib:ro
     restart: unless-stopped

@@ -1,7 +1,5 @@
 # Implement Domain-Specific Equality with Protocols
 
-[← Back to Index](index.livemd)
-
 ```elixir
 Mix.install([
   {:fun_park,
@@ -432,7 +430,3 @@ rides_completed = [haunted_mansion, tea_cup]
 
 FunPark.List.subset?(fast_pass_rides, rides_completed)
 ```
-
----
-
-[Next Chapter: Create Flexible Ordering with Protocols →](chap_03_ord.livemd)

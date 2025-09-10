@@ -1,7 +1,5 @@
 # Combine with Monoids
 
-[← Back to Index](index.livemd)
-
 ```elixir
 Mix.install([
   {:fun_park,
@@ -594,7 +592,3 @@ If there are no patrons, the sentinel value is returned:
 ```elixir
 FunPark.Patron.highest_priority([])
 ```
-
----
-
-[Next Chapter: Define Logic with Predicates →](chap_05_predicate.livemd)

@@ -1,7 +1,5 @@
 # Compose in Context with Monads
 
-[← Back to Index](index.livemd)
-
 ```elixir
 Mix.install([
   {:fun_park,
@@ -389,7 +387,3 @@ tea_cup_m
 |> FunPark.Monad.bind(sensor_2)
 |> FunPark.Monad.bind(sensor_3)
 ```
-
----
-
-[Next Chapter: Access Shared Environment with Reader →](chap_07_reader.livemd)

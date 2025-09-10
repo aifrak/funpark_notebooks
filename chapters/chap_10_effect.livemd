@@ -1,7 +1,5 @@
 # Coordinate Tasks with Effect
 
-[← Back to Index](index.livemd)
-
 ```elixir
 Mix.install([
   {:fun_park,
