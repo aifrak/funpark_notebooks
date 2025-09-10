@@ -123,8 +123,7 @@ services:
 Mix.install([
   {:fun_park,
     git: "https://github.com/JKWA/funpark_notebooks.git",
-    branch: "main",
-    sparse: "code/lib"
+    branch: "main"
   }
 ])
 ```
