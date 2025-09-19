@@ -13,6 +13,10 @@ defmodule FunPark.List do
   alias FunPark.Monoid.ListConcat
   alias FunPark.Ord
 
+  def sort_rides(rides) do
+    Enum.sort(rides, fn ride1, ride2 -> ride1.name < ride2.name end)
+  end
+
   def uniq(list, eq \\ FunPark.Eq) when is_list(list) do
     list
     |> Enum.reduce([], fn item, acc ->
