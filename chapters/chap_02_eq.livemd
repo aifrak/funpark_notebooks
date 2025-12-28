@@ -1,3 +1,5 @@
+<!-- livebook:{"persist_outputs":true} -->
+
 # Implement Domain-Specific Equality with Protocols
 
 ```elixir
@@ -39,16 +41,40 @@ end
 1 == 1
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+true
+```
+
 ```elixir
 1 == 2
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+false
 ```
 
 ```elixir
 FunPark.Eq.eq?(1, 1)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+true
+```
+
 ```elixir
 FunPark.Eq.eq?(1, 2)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+false
 ```
 
 ## Implement Equality for FunPark Contexts
@@ -68,16 +94,54 @@ Create a patron named Alice:
 alice_a = FunPark.Patron.make("Alice", 15, 150)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Patron{
+  id: 3458,
+  name: "Alice",
+  age: 15,
+  height: 150,
+  ticket_tier: :basic,
+  fast_passes: [],
+  reward_points: 0,
+  likes: [],
+  dislikes: []
+}
+```
+
 Alice decides to update her ticket to `:premium`:
 
 ```elixir
 alice_b = FunPark.Patron.change(alice_a, %{ticket_tier: :premium})
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Patron{
+  id: 3458,
+  name: "Alice",
+  age: 15,
+  height: 150,
+  ticket_tier: :premium,
+  fast_passes: [],
+  reward_points: 0,
+  likes: [],
+  dislikes: []
+}
+```
+
 From Elixir's perspective, `alice_a` and `alice_b` are not equal:
 
 ```elixir
 alice_a == alice_b
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+false
 ```
 
 However, within the `Patron` context, this is wrong. Upgrading Alice's ticket doesn't make her a different patron; it just reflects a change in her attributes.
@@ -102,10 +166,32 @@ alice_a = FunPark.Patron.make("Alice", 15, 150)
 alice_b = FunPark.Patron.change(alice_a, %{ticket_tier: :premium})
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Patron{
+  id: 3522,
+  name: "Alice",
+  age: 15,
+  height: 150,
+  ticket_tier: :premium,
+  fast_passes: [],
+  reward_points: 0,
+  likes: [],
+  dislikes: []
+}
+```
+
 And FunPark knows that although these are different records, they refer to the same `Patron`:
 
 ```elixir
 FunPark.Eq.eq?(alice_a, alice_b)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+true
 ```
 
 ### Ride Eq
@@ -136,10 +222,38 @@ Let's generate a ride:
 ride_a = FunPark.Ride.make("Dark Mansion", min_age: 14, tags: [:dark])
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Ride{
+  id: 3586,
+  name: "Dark Mansion",
+  min_age: 14,
+  min_height: 0,
+  wait_time: 0,
+  online: true,
+  tags: [:dark]
+}
+```
+
 And update the wait time to 20 minutes:
 
 ```elixir
 ride_b = FunPark.Ride.change(ride_a, %{wait_time: 20})
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Ride{
+  id: 3586,
+  name: "Dark Mansion",
+  min_age: 14,
+  min_height: 0,
+  wait_time: 20,
+  online: true,
+  tags: [:dark]
+}
 ```
 
 Again, from Elixir's perspective, these are not equal:
@@ -148,10 +262,22 @@ Again, from Elixir's perspective, these are not equal:
 ride_a == ride_b
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+false
+```
+
 But from the Ride context, updating the wait time does not make them different rides:
 
 ```elixir
 FunPark.Eq.eq?(ride_a, ride_b)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+true
 ```
 
 ### FastPass Eq
@@ -184,11 +310,47 @@ datetime = DateTime.new!(~D[2025-06-01], ~T[13:00:00])
 pass_a = FunPark.FastPass.make(tea_cup, datetime)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.FastPass{
+  id: 3842,
+  ride: %FunPark.Ride{
+    id: 3778,
+    name: "Tea Cup",
+    min_age: 0,
+    min_height: 0,
+    wait_time: 0,
+    online: true,
+    tags: []
+  },
+  time: ~U[2025-06-01 13:00:00Z]
+}
+```
+
 Now update the ride on that pass:
 
 ```elixir
 haunted_mansion = FunPark.Ride.make("Haunted Mansion")
 pass_b = FunPark.FastPass.change(pass_a, %{ride: haunted_mansion})
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.FastPass{
+  id: 3842,
+  ride: %FunPark.Ride{
+    id: 3906,
+    name: "Haunted Mansion",
+    min_age: 0,
+    min_height: 0,
+    wait_time: 0,
+    online: true,
+    tags: []
+  },
+  time: ~U[2025-06-01 13:00:00Z]
+}
 ```
 
 Elixir sees the difference:
@@ -197,10 +359,22 @@ Elixir sees the difference:
 pass_a == pass_b
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+false
+```
+
 But our `Eq` implementation focuses only on ID and treats them as equal:
 
 ```elixir
 FunPark.Eq.eq?(pass_a, pass_b)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+true
 ```
 
 ## Transform Inputs Before Matching
@@ -239,11 +413,43 @@ mansion = FunPark.Ride.make("Dark Mansion", min_age: 14, tags: [:dark])
 tea_cup = FunPark.Ride.make("Tea Cup")
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Ride{
+  id: 4034,
+  name: "Tea Cup",
+  min_age: 0,
+  min_height: 0,
+  wait_time: 0,
+  online: true,
+  tags: []
+}
+```
+
 Generate a fast pass for the Dark Mansion:
 
 ```elixir
 datetime = DateTime.new!(~D[2025-06-01], ~T[13:00:00])
 fast_pass_a = FunPark.FastPass.make(mansion, datetime)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.FastPass{
+  id: 4226,
+  ride: %FunPark.Ride{
+    id: 3970,
+    name: "Dark Mansion",
+    min_age: 14,
+    min_height: 0,
+    wait_time: 0,
+    online: true,
+    tags: [:dark]
+  },
+  time: ~U[2025-06-01 13:00:00Z]
+}
 ```
 
 Generate another Fast Pass for the Tea Cup using the same time:
@@ -252,16 +458,46 @@ Generate another Fast Pass for the Tea Cup using the same time:
 fast_pass_b = FunPark.FastPass.make(tea_cup, datetime)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.FastPass{
+  id: 4290,
+  ride: %FunPark.Ride{
+    id: 4034,
+    name: "Tea Cup",
+    min_age: 0,
+    min_height: 0,
+    wait_time: 0,
+    online: true,
+    tags: []
+  },
+  time: ~U[2025-06-01 13:00:00Z]
+}
+```
+
 Our default equality check knows these are different (they have different ids):
 
 ```elixir
 FunPark.Eq.eq?(fast_pass_a, fast_pass_b)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+false
+```
+
 But our new custom equality knows they have the same time:
 
 ```elixir
 FunPark.FastPass.eq_time().eq?.(fast_pass_a, fast_pass_b)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+true
 ```
 
 ### Simplify Equality Checks
@@ -285,10 +521,34 @@ fast_pass_a = FunPark.FastPass.make(mansion, datetime)
 fast_pass_b = FunPark.FastPass.make(tea_cup, datetime)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.FastPass{
+  id: 4674,
+  ride: %FunPark.Ride{
+    id: 4546,
+    name: "Tea Cup",
+    min_age: 0,
+    min_height: 0,
+    wait_time: 0,
+    online: true,
+    tags: []
+  },
+  time: ~U[2025-06-01 13:00:00Z]
+}
+```
+
 From the context of `FastPass`, the passes have different ID's, so they are different:
 
 ```elixir
 FunPark.Eq.Utils.eq?(fast_pass_a, fast_pass_b)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+false
 ```
 
 But we can inject our `eq_time/0` logic to determine they are scheduled for the same time:
@@ -296,6 +556,12 @@ But we can inject our `eq_time/0` logic to determine they are scheduled for the 
 ```elixir
 has_eq_time = FunPark.FastPass.eq_time()
 FunPark.Eq.Utils.eq?(fast_pass_a, fast_pass_b, has_eq_time)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+true
 ```
 
 ## Harness Equality for Collections
@@ -328,6 +594,24 @@ alice_b = FunPark.Patron.change(alice_a, %{ticket_tier: :premium})
 FunPark.List.uniq([alice_a, alice_b])
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+[
+  %FunPark.Patron{
+    id: 4738,
+    name: "Alice",
+    age: 15,
+    height: 50,
+    ticket_tier: :basic,
+    fast_passes: [],
+    reward_points: 0,
+    likes: [],
+    dislikes: []
+  }
+]
+```
+
 Even though `alice_a` and `alice_b` have different ticket tiers, they share the same ID. Since `uniq/1` is context-aware, it used the `Eq` implementation for `Patron` and removed the second entry.
 
 ### Union
@@ -351,6 +635,40 @@ maintenance_log = [haunted_mansion, apple_cart]
 breakdown_log = [tea_cup, haunted_mansion]
 
 FunPark.List.union(maintenance_log, breakdown_log)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+[
+  %FunPark.Ride{
+    id: 4866,
+    name: "Haunted Mansion",
+    min_age: 0,
+    min_height: 0,
+    wait_time: 0,
+    online: true,
+    tags: []
+  },
+  %FunPark.Ride{
+    id: 4930,
+    name: "Apple Cart",
+    min_age: 0,
+    min_height: 0,
+    wait_time: 0,
+    online: true,
+    tags: []
+  },
+  %FunPark.Ride{
+    id: 4802,
+    name: "Tea Cup",
+    min_age: 0,
+    min_height: 0,
+    wait_time: 0,
+    online: true,
+    tags: []
+  }
+]
 ```
 
 This combines both lists into one, removing duplicates based on the `Ride`'s `Eq` implementation.
@@ -381,6 +699,22 @@ most_fast_pass = [tea_cup, haunted_mansion]
 FunPark.List.intersection(long_wait, most_fast_pass)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+[
+  %FunPark.Ride{
+    id: 4866,
+    name: "Haunted Mansion",
+    min_age: 0,
+    min_height: 0,
+    wait_time: 0,
+    online: true,
+    tags: []
+  }
+]
+```
+
 ### Difference
 
 Not all rides in FunPark are accessible to every patron. We can use difference to subtract restricted rides from the full list, identifying attractions available to all guests.
@@ -406,6 +740,73 @@ restricted_rides = [haunted_mansion]
 FunPark.List.difference(all_rides, restricted_rides)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+[
+  %FunPark.Ride{
+    id: 4930,
+    name: "Apple Cart",
+    min_age: 0,
+    min_height: 0,
+    wait_time: 0,
+    online: true,
+    tags: []
+  }
+]
+```
+
+### Symmetric Difference
+
+To evaluate whether our FastPass strategy is working, we need to find rides that don’t behave as expected.
+
+````markdown
+```elixir
+def symmetric_difference(list1, list2, eq \\ FunPark.Eq)
+    when is_list(list1) and is_list(list2) do
+  (difference(list1, list2, eq) ++ difference(list2, list1, eq))
+  |> uniq(eq)
+end
+```
+````
+
+Apple Cart and Tea Cup appear in only one of the two lists, which means they aren’t behaving as expected:
+
+```elixir
+long_wait_times = [haunted_mansion, apple_cart]
+fast_pass_usage = [tea_cup, haunted_mansion]
+
+FunPark.List.symmetric_difference(
+  long_wait_times,
+  fast_pass_usage
+)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+[
+  %FunPark.Ride{
+    id: 4930,
+    name: "Apple Cart",
+    min_age: 0,
+    min_height: 0,
+    wait_time: 0,
+    online: true,
+    tags: []
+  },
+  %FunPark.Ride{
+    id: 4802,
+    name: "Tea Cup",
+    min_age: 0,
+    min_height: 0,
+    wait_time: 0,
+    online: true,
+    tags: []
+  }
+]
+```
+
 ### Subset
 
 FunPark needs to track if guests made full use of their Fast Passes. We can check if every eligible ride was used by verifying that the patron's Fast Pass list is a subset of the rides they rode.
@@ -429,4 +830,43 @@ fast_pass_rides = [tea_cup]
 rides_completed = [haunted_mansion, tea_cup]
 
 FunPark.List.subset?(fast_pass_rides, rides_completed)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+true
+```
+
+### Superset
+
+FunPark looks for engagement, upgrade, or access opportunities by tracking when guests take rides when they didn’t have a FastPass.
+
+````markdown
+```elixir
+def subset?(list_a, list_b, eq \\ Eq) do
+  eq = Utils.to_eq_map(eq)
+
+  Enum.all?(list_a, fn item_a ->
+    Enum.any?(list_b, &eq.eq?.(item_a, &1))
+  end)
+end
+```
+````
+
+This patron rode more than just their FastPass attractions:
+
+```elixir
+banana_slip = FunPark.Ride.make("Banana Slip")
+
+fast_pass_rides = [haunted_mansion]
+rides_completed = [tea_cup, banana_slip, haunted_mansion]
+
+FunPark.List.superset?(rides_completed, fast_pass_rides)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+true
 ```
