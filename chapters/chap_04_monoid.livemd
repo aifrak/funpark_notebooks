@@ -1,3 +1,5 @@
+<!-- livebook:{"persist_outputs":true} -->
+
 # Combine with Monoids
 
 ```elixir
@@ -55,8 +57,20 @@ Use `Monoid.wrap/2` to lift raw values into the monoid context:
 sum_1 = FunPark.Monoid.wrap(%FunPark.Monoid.Sum{}, 1)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monoid.Sum{value: 1}
+```
+
 ```elixir
 sum_2 = FunPark.Monoid.wrap(%FunPark.Monoid.Sum{}, 2)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monoid.Sum{value: 2}
 ```
 
 Use `append/2` to combine the values within the context of `Monoid.Sum`:
@@ -65,10 +79,22 @@ Use `append/2` to combine the values within the context of `Monoid.Sum`:
 value = FunPark.Monoid.append(sum_1, sum_2)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monoid.Sum{value: 3}
+```
+
 And unwrap the final value:
 
 ```elixir
 FunPark.Monoid.unwrap(value)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+3
 ```
 
 ### Appendable
@@ -88,6 +114,12 @@ Combine `1` and `2`:
 
 ```elixir
 FunPark.Monoid.Utils.m_append(%FunPark.Monoid.Sum{}, 1, 2)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+3
 ```
 
 ### Foldable
@@ -140,10 +172,22 @@ Now we can add two `Ride` wait time sensors:
 FunPark.Math.sum(1, 2)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+3
+```
+
 And we can add a collection of sensors:
 
 ```elixir
 FunPark.Math.sum([1, 2, 3])
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+6
 ```
 
 Or even a single sensor:
@@ -152,10 +196,22 @@ Or even a single sensor:
 FunPark.Math.sum([3])
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+3
+```
+
 And when there are no sensors at all, the monoid still knows what to do:
 
 ```elixir
 FunPark.Math.sum([])
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+0
 ```
 
 ## Combine Equality
@@ -211,6 +267,24 @@ fast_pass_a = FunPark.FastPass.make(apple, datetime)
 fast_pass_b = FunPark.FastPass.make(apple, datetime)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.FastPass{
+  id: 2818,
+  ride: %FunPark.Ride{
+    id: 2690,
+    name: "Apple Cart",
+    min_age: 0,
+    min_height: 0,
+    wait_time: 0,
+    online: true,
+    tags: []
+  },
+  time: ~U[2025-06-01 13:00:00Z]
+}
+```
+
 Combine ride and time comparators:
 
 ```elixir
@@ -219,22 +293,55 @@ eq_time = FunPark.FastPass.eq_time()
 eq_both = FunPark.Eq.Utils.concat_all([eq_ride, eq_time])
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%{
+  eq?: #Function<0.92338739/2 in FunPark.Monoid.FunPark.Monoid.Eq.All.append/2>,
+  not_eq?: #Function<1.92338739/2 in FunPark.Monoid.FunPark.Monoid.Eq.All.append/2>
+}
+```
+
 Different IDs make them different:
 
 ```elixir
 FunPark.Eq.Utils.eq?(fast_pass_a, fast_pass_b)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+false
+```
+
 ```elixir
 FunPark.Eq.Utils.eq?(fast_pass_a, fast_pass_b, eq_ride)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+true
 ```
 
 ```elixir
 FunPark.Eq.Utils.eq?(fast_pass_a, fast_pass_b, eq_time)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+true
+```
+
 ```elixir
 FunPark.Eq.Utils.eq?(fast_pass_a, fast_pass_b, eq_both)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+true
 ```
 
 Update the time on `fast_pass_a`:
@@ -244,10 +351,34 @@ datetime_2 = DateTime.new!(~D[2025-06-01], ~T[14:00:00])
 fast_pass_a = FunPark.FastPass.change(fast_pass_a, %{time: datetime_2})
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.FastPass{
+  id: 2754,
+  ride: %FunPark.Ride{
+    id: 2690,
+    name: "Apple Cart",
+    min_age: 0,
+    min_height: 0,
+    wait_time: 0,
+    online: true,
+    tags: []
+  },
+  time: ~U[2025-06-01 14:00:00Z]
+}
+```
+
 Same ride:
 
 ```elixir
 FunPark.Eq.Utils.eq?(fast_pass_a, fast_pass_b, eq_ride)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+true
 ```
 
 Different time:
@@ -256,10 +387,22 @@ Different time:
 FunPark.Eq.Utils.eq?(fast_pass_a, fast_pass_b, eq_time)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+false
+```
+
 Different time and ride:
 
 ```elixir
 FunPark.Eq.Utils.eq?(fast_pass_a, fast_pass_b, eq_both)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+false
 ```
 
 #### Add to FastPass
@@ -314,10 +457,34 @@ pass_a = FunPark.FastPass.make(tea_cup, datetime)
 pass_b = FunPark.FastPass.make(tea_cup, datetime)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.FastPass{
+  id: 3266,
+  ride: %FunPark.Ride{
+    id: 3138,
+    name: "Tea Cup",
+    min_age: 0,
+    min_height: 0,
+    wait_time: 0,
+    online: true,
+    tags: []
+  },
+  time: ~U[2025-06-01 13:00:00Z]
+}
+```
+
 Different IDs:
 
 ```elixir
 FunPark.Eq.Utils.eq?(pass_a, pass_b)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+false
 ```
 
 Duplicate check considers them the same:
@@ -327,11 +494,35 @@ dup_pass_check = FunPark.FastPass.duplicate_pass()
 FunPark.Eq.Utils.eq?(pass_a, pass_b, dup_pass_check)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+true
+```
+
 Update the first pass to point to a different ride:
 
 ```elixir
 mansion = FunPark.Ride.make("Haunted Mansion")
 pass_a_changed = FunPark.FastPass.change(pass_a, %{ride: mansion})
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.FastPass{
+  id: 3202,
+  ride: %FunPark.Ride{
+    id: 3330,
+    name: "Haunted Mansion",
+    min_age: 0,
+    min_height: 0,
+    wait_time: 0,
+    online: true,
+    tags: []
+  },
+  time: ~U[2025-06-01 13:00:00Z]
+}
 ```
 
 Same ID makes them equal:
@@ -340,10 +531,22 @@ Same ID makes them equal:
 FunPark.Eq.Utils.eq?(pass_a, pass_a_changed, dup_pass_check)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+true
+```
+
 Different IDs and rides:
 
 ```elixir
 FunPark.Eq.Utils.eq?(pass_b, pass_a_changed, dup_pass_check)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+false
 ```
 
 ## Combine Order
@@ -426,10 +629,66 @@ charles = FunPark.Patron.make(
 )
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Patron{
+  id: 3522,
+  name: "Charles",
+  age: 14,
+  height: 60,
+  ticket_tier: :premium,
+  fast_passes: [],
+  reward_points: 50,
+  likes: [],
+  dislikes: []
+}
+```
+
 Default sort is alphabetical by name:
 
 ```elixir
 FunPark.List.sort([charles, beth, alice])
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+[
+  %FunPark.Patron{
+    id: 3394,
+    name: "Alice",
+    age: 15,
+    height: 50,
+    ticket_tier: :premium,
+    fast_passes: [],
+    reward_points: 50,
+    likes: [],
+    dislikes: []
+  },
+  %FunPark.Patron{
+    id: 3458,
+    name: "Beth",
+    age: 16,
+    height: 55,
+    ticket_tier: :vip,
+    fast_passes: [],
+    reward_points: 20,
+    likes: [],
+    dislikes: []
+  },
+  %FunPark.Patron{
+    id: 3522,
+    name: "Charles",
+    age: 14,
+    height: 60,
+    ticket_tier: :premium,
+    fast_passes: [],
+    reward_points: 50,
+    likes: [],
+    dislikes: []
+  }
+]
 ```
 
 Priority sort by ticket tier and reward points:
@@ -441,6 +700,46 @@ ord_priority = FunPark.Ord.Utils.concat([ord_ticket, ord_reward_points])
 FunPark.List.sort([charles, beth, alice], ord_priority)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+[
+  %FunPark.Patron{
+    id: 3522,
+    name: "Charles",
+    age: 14,
+    height: 60,
+    ticket_tier: :premium,
+    fast_passes: [],
+    reward_points: 50,
+    likes: [],
+    dislikes: []
+  },
+  %FunPark.Patron{
+    id: 3394,
+    name: "Alice",
+    age: 15,
+    height: 50,
+    ticket_tier: :premium,
+    fast_passes: [],
+    reward_points: 50,
+    likes: [],
+    dislikes: []
+  },
+  %FunPark.Patron{
+    id: 3458,
+    name: "Beth",
+    age: 16,
+    height: 55,
+    ticket_tier: :vip,
+    fast_passes: [],
+    reward_points: 20,
+    likes: [],
+    dislikes: []
+  }
+]
+```
+
 Add name as tie-breaker:
 
 ```elixir
@@ -449,6 +748,46 @@ ord_priority = FunPark.Ord.Utils.concat(
 )
 
 FunPark.List.sort([charles, beth, alice], ord_priority)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+[
+  %FunPark.Patron{
+    id: 3394,
+    name: "Alice",
+    age: 15,
+    height: 50,
+    ticket_tier: :premium,
+    fast_passes: [],
+    reward_points: 50,
+    likes: [],
+    dislikes: []
+  },
+  %FunPark.Patron{
+    id: 3522,
+    name: "Charles",
+    age: 14,
+    height: 60,
+    ticket_tier: :premium,
+    fast_passes: [],
+    reward_points: 50,
+    likes: [],
+    dislikes: []
+  },
+  %FunPark.Patron{
+    id: 3458,
+    name: "Beth",
+    age: 16,
+    height: 55,
+    ticket_tier: :vip,
+    fast_passes: [],
+    reward_points: 20,
+    likes: [],
+    dislikes: []
+  }
+]
 ```
 
 ````markdown
@@ -506,11 +845,23 @@ Find the larger of two numbers:
 FunPark.Math.max(1, 2)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+2
+```
+
 And `max/1` solves our `Ride` expert's daily report from a ride's wait time log:
 
 ```elixir
 log = [20, 30, 10, 20, 15, 10, 20]
 FunPark.Math.max(log)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+30
 ```
 
 Like all Monoids, `Max` also works with a single value:
@@ -519,10 +870,22 @@ Like all Monoids, `Max` also works with a single value:
 FunPark.Math.max([3])
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+3
+```
+
 And for an empty list, it returns the identity—in this case, Elixir's smallest possible number:
 
 ```elixir
 FunPark.Math.max([])
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+-1.7976931348623157e308
 ```
 
 ### Prioritize a Patron
@@ -573,6 +936,22 @@ beth = FunPark.Patron.make("Beth", 15, 150, reward_points: 100)
 FunPark.Patron.highest_priority([beth, alice])
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Patron{
+  id: 3650,
+  name: "Beth",
+  age: 15,
+  height: 150,
+  ticket_tier: :basic,
+  fast_passes: [],
+  reward_points: 100,
+  likes: [],
+  dislikes: []
+}
+```
+
 Alice upgrades to VIP:
 
 ```elixir
@@ -581,14 +960,62 @@ alice = FunPark.Patron.change(alice, %{ticket_tier: :vip})
 FunPark.Patron.highest_priority([beth, alice])
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Patron{
+  id: 3586,
+  name: "Alice",
+  age: 15,
+  height: 150,
+  ticket_tier: :vip,
+  fast_passes: [],
+  reward_points: 0,
+  likes: [],
+  dislikes: []
+}
+```
+
 The Max Monoid also works when there is only a single patron in the list:
 
 ```elixir
 FunPark.Patron.highest_priority([beth])
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Patron{
+  id: 3650,
+  name: "Beth",
+  age: 15,
+  height: 150,
+  ticket_tier: :basic,
+  fast_passes: [],
+  reward_points: 100,
+  likes: [],
+  dislikes: []
+}
+```
+
 If there are no patrons, the sentinel value is returned:
 
 ```elixir
 FunPark.Patron.highest_priority([])
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Patron{
+  id: nil,
+  name: nil,
+  age: 0,
+  height: 0,
+  ticket_tier: nil,
+  fast_passes: [],
+  reward_points: -1.7976931348623157e308,
+  likes: [],
+  dislikes: []
+}
 ```
