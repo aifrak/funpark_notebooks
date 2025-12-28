@@ -1,3 +1,5 @@
+<!-- livebook:{"persist_outputs":true} -->
+
 # Create Flexible Ordering with Protocols
 
 ```elixir
@@ -45,8 +47,20 @@ Using Elixir's operators:
 1 < 2
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+true
+```
+
 ```elixir
 1 > 2
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+false
 ```
 
 Our `Ord` implementation produces the same results:
@@ -55,8 +69,20 @@ Our `Ord` implementation produces the same results:
 FunPark.Ord.lt?(1, 2)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+true
+```
+
 ```elixir
 FunPark.Ord.gt?(1, 2)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+false
 ```
 
 ## Implement Order for FunPark Contexts
@@ -84,8 +110,36 @@ First, let's make a couple of rides:
 banana_slip = FunPark.Ride.make("Banana Slip")
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Ride{
+  id: 529,
+  name: "Banana Slip",
+  min_age: 0,
+  min_height: 0,
+  wait_time: 0,
+  online: true,
+  tags: []
+}
+```
+
 ```elixir
 apple_cart = FunPark.Ride.make("Apple Cart")
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Ride{
+  id: 593,
+  name: "Apple Cart",
+  min_age: 0,
+  min_height: 0,
+  wait_time: 0,
+  online: true,
+  tags: []
+}
 ```
 
 Elixir's built-in `<` operator sorts Apple Cart *after* Banana Slip:
@@ -94,10 +148,22 @@ Elixir's built-in `<` operator sorts Apple Cart *after* Banana Slip:
 apple_cart < banana_slip
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+false
+```
+
 Our `Ord` protocol knows that `Ride` values should be compared by `name`:
 
 ```elixir
 FunPark.Ord.lt?(apple_cart, banana_slip)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+true
 ```
 
 ### FastPass Context
@@ -124,16 +190,34 @@ datetime_1 = DateTime.new!(~D[2025-06-01], ~T[13:10:00.000005])
 datetime_2 = DateTime.new!(~D[2025-06-01], ~T[13:40:00.000004])
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+~U[2025-06-01 13:40:00.000004Z]
+```
+
 The first comes before the second, so it should be less—but it's not:
 
 ```elixir
 datetime_1 < datetime_2
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+false
+```
+
 `DateTime.compare/2`, on the other hand, does understand time:
 
 ```elixir
 DateTime.compare(datetime_1, datetime_2)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+:lt
 ```
 
 We can implement our own `Ord` instance for `DateTime`:
@@ -162,10 +246,34 @@ fast_pass_1 = FunPark.FastPass.make(banana_slip, datetime_1)
 fast_pass_2 = FunPark.FastPass.make(apple_cart, datetime_2)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.FastPass{
+  id: 1361,
+  ride: %FunPark.Ride{
+    id: 1169,
+    name: "Apple Cart",
+    min_age: 0,
+    min_height: 0,
+    wait_time: 0,
+    online: true,
+    tags: []
+  },
+  time: ~U[2025-06-01 13:40:00.000004Z]
+}
+```
+
 Our default `Ord` correctly identifies that the first pass comes before the second:
 
 ```elixir
 FunPark.Ord.lt?(fast_pass_1, fast_pass_2)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+true
 ```
 
 If we update `fast_pass_1` to a later time:
@@ -175,10 +283,34 @@ time_3 = DateTime.new!(~D[2025-06-01], ~T[15:00:00.000012])
 fast_pass_1 = FunPark.FastPass.change(fast_pass_1, %{time: time_3})
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.FastPass{
+  id: 1297,
+  ride: %FunPark.Ride{
+    id: 1233,
+    name: "Banana Slip",
+    min_age: 0,
+    min_height: 0,
+    wait_time: 0,
+    online: true,
+    tags: []
+  },
+  time: ~U[2025-06-01 15:00:00.000012Z]
+}
+```
+
 The first pass is now considered greater:
 
 ```elixir
 FunPark.Ord.gt?(fast_pass_1, fast_pass_2)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+true
 ```
 
 ## Transform Inputs Before Comparison
@@ -221,11 +353,33 @@ alice = FunPark.Patron.make("Alice", 15, 50, ticket_tier: :premium)
 beth = FunPark.Patron.make("Beth", 16, 53)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Patron{
+  id: 1617,
+  name: "Beth",
+  age: 16,
+  height: 53,
+  ticket_tier: :basic,
+  fast_passes: [],
+  reward_points: 0,
+  likes: [],
+  dislikes: []
+}
+```
+
 Alice ranks higher than Beth due to her `:premium` ticket:
 
 ```elixir
 ticket_ord = FunPark.Patron.ord_by_ticket_tier()
 ticket_ord.gt?.(alice, beth)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+true
 ```
 
 Later, Beth decides to upgrade to `:vip`:
@@ -234,10 +388,32 @@ Later, Beth decides to upgrade to `:vip`:
 beth = FunPark.Patron.change(beth, %{ticket_tier: :vip})
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Patron{
+  id: 1617,
+  name: "Beth",
+  age: 16,
+  height: 53,
+  ticket_tier: :vip,
+  fast_passes: [],
+  reward_points: 0,
+  likes: [],
+  dislikes: []
+}
+```
+
 With a `:vip` ticket, Beth now ranks higher than Alice:
 
 ```elixir
 ticket_ord.gt?.(beth, alice)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+true
 ```
 
 ## Harness Order for Collections
@@ -261,6 +437,31 @@ banana_slip = FunPark.Ride.make("Banana Slip")
 FunPark.List.sort_rides([banana_slip, apple_cart])
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+[
+  %FunPark.Ride{
+    id: 1681,
+    name: "Apple Cart",
+    min_age: 0,
+    min_height: 0,
+    wait_time: 0,
+    online: true,
+    tags: []
+  },
+  %FunPark.Ride{
+    id: 1745,
+    name: "Banana Slip",
+    min_age: 0,
+    min_height: 0,
+    wait_time: 0,
+    online: true,
+    tags: []
+  }
+]
+```
+
 ### Generalize the Sort
 
 ````markdown
@@ -282,12 +483,30 @@ We can compare simple values:
 FunPark.Ord.Utils.compare(1, 1)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+:eq
+```
+
 ```elixir
 FunPark.Ord.Utils.compare(1, 2)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+:lt
+```
+
 ```elixir
 FunPark.Ord.Utils.compare(1, 0)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+:gt
 ```
 
 And context-aware values, such as rides:
@@ -299,12 +518,30 @@ banana_slip = FunPark.Ride.make("Banana Slip")
 FunPark.Ord.Utils.compare(apple_cart, apple_cart)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+:eq
+```
+
 ```elixir
 FunPark.Ord.Utils.compare(apple_cart, banana_slip)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+:lt
+```
+
 ```elixir
 FunPark.Ord.Utils.compare(banana_slip, apple_cart)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+:gt
 ```
 
 ````markdown
@@ -322,6 +559,12 @@ We can sort simple values:
 FunPark.List.sort([:banana, :pear, :apple])
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+[:apple, :banana, :pear]
+```
+
 Or context-aware values that have implemented the `Ord` protocol:
 
 ```elixir
@@ -329,6 +572,31 @@ banana_slip = FunPark.Ride.make("Banana Slip")
 apple_cart = FunPark.Ride.make("Apple Cart")
 
 FunPark.List.sort([banana_slip, apple_cart])
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+[
+  %FunPark.Ride{
+    id: 2001,
+    name: "Apple Cart",
+    min_age: 0,
+    min_height: 0,
+    wait_time: 0,
+    online: true,
+    tags: []
+  },
+  %FunPark.Ride{
+    id: 1937,
+    name: "Banana Slip",
+    min_age: 0,
+    min_height: 0,
+    wait_time: 0,
+    online: true,
+    tags: []
+  }
+]
 ```
 
 ### Strict Sort
@@ -342,6 +610,40 @@ river_ride = FunPark.Ride.make("River Ride", wait_time: 40)
 rides = [tea_cup, haunted_mansion, river_ride]
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+[
+  %FunPark.Ride{
+    id: 3138,
+    name: "Tea Cup",
+    min_age: 0,
+    min_height: 0,
+    wait_time: 40,
+    online: true,
+    tags: []
+  },
+  %FunPark.Ride{
+    id: 3202,
+    name: "Haunted Mansion",
+    min_age: 0,
+    min_height: 0,
+    wait_time: 20,
+    online: true,
+    tags: []
+  },
+  %FunPark.Ride{
+    id: 3266,
+    name: "River Ride",
+    min_age: 0,
+    min_height: 0,
+    wait_time: 40,
+    online: true,
+    tags: []
+  }
+]
+```
+
 Using `ord_by_wait_time/0`, we can sort rides by their current wait times:
 
 ```elixir
@@ -349,10 +651,69 @@ ord_wait_time = FunPark.Ride.ord_by_wait_time()
 FunPark.List.sort(rides, ord_wait_time)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+[
+  %FunPark.Ride{
+    id: 3202,
+    name: "Haunted Mansion",
+    min_age: 0,
+    min_height: 0,
+    wait_time: 20,
+    online: true,
+    tags: []
+  },
+  %FunPark.Ride{
+    id: 3138,
+    name: "Tea Cup",
+    min_age: 0,
+    min_height: 0,
+    wait_time: 40,
+    online: true,
+    tags: []
+  },
+  %FunPark.Ride{
+    id: 3266,
+    name: "River Ride",
+    min_age: 0,
+    min_height: 0,
+    wait_time: 40,
+    online: true,
+    tags: []
+  }
+]
+```
+
 To generate a snapshot—just one ride per distinct wait time—we use `strict_sort/2`:
 
 ```elixir
 FunPark.List.strict_sort(rides, ord_wait_time)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+[
+  %FunPark.Ride{
+    id: 3202,
+    name: "Haunted Mansion",
+    min_age: 0,
+    min_height: 0,
+    wait_time: 20,
+    online: true,
+    tags: []
+  },
+  %FunPark.Ride{
+    id: 3138,
+    name: "Tea Cup",
+    min_age: 0,
+    min_height: 0,
+    wait_time: 40,
+    online: true,
+    tags: []
+  }
+]
 ```
 
 ## Reverse the Order
@@ -378,8 +739,20 @@ reverse_ord = FunPark.Ord.Utils.reverse()
 FunPark.Ord.Utils.compare(:apple, :banana)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+:lt
+```
+
 ```elixir
 FunPark.Ord.Utils.compare(:apple, :banana, reverse_ord)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+:gt
 ```
 
 By default, `Patron` sorts by name, so Alice comes before Beth:
@@ -391,11 +764,69 @@ beth = FunPark.Patron.make("Beth", 15, 130, ticket_tier: :premium)
 FunPark.List.sort([alice, beth])
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+[
+  %FunPark.Patron{
+    id: 3330,
+    name: "Alice",
+    age: 14,
+    height: 140,
+    ticket_tier: :vip,
+    fast_passes: [],
+    reward_points: 0,
+    likes: [],
+    dislikes: []
+  },
+  %FunPark.Patron{
+    id: 3394,
+    name: "Beth",
+    age: 15,
+    height: 130,
+    ticket_tier: :premium,
+    fast_passes: [],
+    reward_points: 0,
+    likes: [],
+    dislikes: []
+  }
+]
+```
+
 With `reverse/0`, Beth now comes before Alice:
 
 ```elixir
 reverse_ord = FunPark.Ord.Utils.reverse()
 FunPark.List.sort([alice, beth], reverse_ord)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+[
+  %FunPark.Patron{
+    id: 3394,
+    name: "Beth",
+    age: 15,
+    height: 130,
+    ticket_tier: :premium,
+    fast_passes: [],
+    reward_points: 0,
+    likes: [],
+    dislikes: []
+  },
+  %FunPark.Patron{
+    id: 3330,
+    name: "Alice",
+    age: 14,
+    height: 140,
+    ticket_tier: :vip,
+    fast_passes: [],
+    reward_points: 0,
+    likes: [],
+    dislikes: []
+  }
+]
 ```
 
 If we sort by ticket tier, Alice's VIP ticket comes after Beth's Premium:
@@ -405,9 +836,67 @@ ticket_ord = FunPark.Patron.ord_by_ticket_tier()
 FunPark.List.sort([alice, beth], ticket_ord)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+[
+  %FunPark.Patron{
+    id: 3394,
+    name: "Beth",
+    age: 15,
+    height: 130,
+    ticket_tier: :premium,
+    fast_passes: [],
+    reward_points: 0,
+    likes: [],
+    dislikes: []
+  },
+  %FunPark.Patron{
+    id: 3330,
+    name: "Alice",
+    age: 14,
+    height: 140,
+    ticket_tier: :vip,
+    fast_passes: [],
+    reward_points: 0,
+    likes: [],
+    dislikes: []
+  }
+]
+```
+
 And with `reverse/1`, we can invert the logic so higher ticket tiers come first:
 
 ```elixir
 reverse_ticket_ord = FunPark.Ord.Utils.reverse(ticket_ord)
 FunPark.List.sort([alice, beth], reverse_ticket_ord)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+[
+  %FunPark.Patron{
+    id: 3330,
+    name: "Alice",
+    age: 14,
+    height: 140,
+    ticket_tier: :vip,
+    fast_passes: [],
+    reward_points: 0,
+    likes: [],
+    dislikes: []
+  },
+  %FunPark.Patron{
+    id: 3394,
+    name: "Beth",
+    age: 15,
+    height: 130,
+    ticket_tier: :premium,
+    fast_passes: [],
+    reward_points: 0,
+    likes: [],
+    dislikes: []
+  }
+]
 ```
