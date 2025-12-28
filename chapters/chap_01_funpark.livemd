@@ -1,3 +1,5 @@
+<!-- livebook:{"persist_outputs":true} -->
+
 # Build FunPark: Model Real-World Data
 
 ```elixir
@@ -51,6 +53,20 @@ Create a family-friendly ride:
 FunPark.Ride.make("Tea Cup", wait_time: 10, tags: [:family_friendly])
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Ride{
+  id: 1420,
+  name: "Tea Cup",
+  min_age: 0,
+  min_height: 0,
+  wait_time: 10,
+  online: true,
+  tags: [:family_friendly]
+}
+```
+
 Create a more restricted ride:
 
 ```elixir
@@ -59,6 +75,20 @@ dark_mansion = FunPark.Ride.make(
   min_age: 14, 
   tags: [:dark]
 )
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Ride{
+  id: 1484,
+  name: "Dark Mansion",
+  min_age: 14,
+  min_height: 0,
+  wait_time: 0,
+  online: true,
+  tags: [:dark]
+}
 ```
 
 ## Implement Fast Passes for Priority Access
@@ -91,10 +121,34 @@ Create a time:
 datetime = DateTime.new!(~D[2025-06-01], ~T[13:00:00])
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+~U[2025-06-01 13:00:00Z]
+```
+
 Create a fast pass for the Dark Mansion:
 
 ```elixir
 fast_pass = FunPark.FastPass.make(dark_mansion, datetime)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.FastPass{
+  id: 1676,
+  ride: %FunPark.Ride{
+    id: 1484,
+    name: "Dark Mansion",
+    min_age: 14,
+    min_height: 0,
+    wait_time: 0,
+    online: true,
+    tags: [:dark]
+  },
+  time: ~U[2025-06-01 13:00:00Z]
+}
 ```
 
 ## Model the Patrons
@@ -140,4 +194,34 @@ Create a patron named Alice with a FastPass:
 
 ```elixir
 FunPark.Patron.make("Alice", 15, 120, fast_passes: [fast_pass])
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Patron{
+  id: 1740,
+  name: "Alice",
+  age: 15,
+  height: 120,
+  ticket_tier: :basic,
+  fast_passes: [
+    %FunPark.FastPass{
+      id: 1676,
+      ride: %FunPark.Ride{
+        id: 1484,
+        name: "Dark Mansion",
+        min_age: 14,
+        min_height: 0,
+        wait_time: 0,
+        online: true,
+        tags: [:dark]
+      },
+      time: ~U[2025-06-01 13:00:00Z]
+    }
+  ],
+  reward_points: 0,
+  likes: [],
+  dislikes: []
+}
 ```
