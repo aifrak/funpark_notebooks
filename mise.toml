@@ -1,0 +1,25 @@
+[tools]
+elixir = "1.18.4-otp-27"
+erlang = "27.3.4.6"
+
+[env]
+_.path = ["~/.mix/escripts"]
+MISE_TASK_TIMINGS = 1
+BASE_DIR = "{{ config_root }}"
+
+[tasks."reset:local"]
+description = "Clean and setup everything again."
+run = ["mise run setup"]
+
+[tasks.setup]
+description = "Install dependencies and setup project"
+run = ["mise run install:lang:elixir", "mix escript.install hex livebook"]
+
+
+[tasks."install:lang:elixir"]
+description = "Install Elixir, hex and rebar."
+run = [
+  "mise install elixir",
+  "mix local.hex --force",
+  "mix local.rebar --force",
+]

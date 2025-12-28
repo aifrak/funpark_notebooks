@@ -1,0 +1,19 @@
+{
+  "$schema": "https://raw.githubusercontent.com/jetify-com/devbox/0.15.0/.schema/devbox.schema.json",
+  "packages": {
+    "mise": "2025.11.11",
+    "shellcheck": "0.10.0",
+    "shfmt": "3.10.0",
+    "inotify-tools": {
+      "version": "4.25.9.0",
+      "platforms": ["x86_64-linux", "aarch64-linux"]
+    }
+  },
+  "shell": {
+    "init_hook": [
+      ". scripts/mise/init.sh",
+      ". scripts/devbox/start_services.sh",
+      ". scripts/devbox/start_shell.sh"
+    ]
+  }
+}
