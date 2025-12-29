@@ -1,3 +1,5 @@
+<!-- livebook:{"persist_outputs":true} -->
+
 # Define Logic with Predicates
 
 ```elixir
@@ -35,16 +37,42 @@ Let's start by generating a ride:
 tea_cup = FunPark.Ride.make("Tea Cup", online: true, wait_time: 100)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Ride{
+  id: 259,
+  name: "Tea Cup",
+  min_age: 0,
+  min_height: 0,
+  wait_time: 100,
+  online: true,
+  tags: []
+}
+```
+
 The Tea Cup is online:
 
 ```elixir
 FunPark.Ride.online?(tea_cup)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+true
+```
+
 And it has a long wait:
 
 ```elixir
 FunPark.Ride.long_wait?(tea_cup)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+true
 ```
 
 ````markdown
@@ -131,8 +159,28 @@ The Tea Cup ride is not suggested because it has a wait time of 100 minutes:
 tea_cup = FunPark.Ride.make("Tea Cup", online: true, wait_time: 100)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Ride{
+  id: 323,
+  name: "Tea Cup",
+  min_age: 0,
+  min_height: 0,
+  wait_time: 100,
+  online: true,
+  tags: []
+}
+```
+
 ```elixir
 FunPark.Ride.suggested?(tea_cup)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+false
 ```
 
 Later, the wait time for the Tea Cup ride shortens to 10 minutes, making it a suggested ride:
@@ -141,8 +189,28 @@ Later, the wait time for the Tea Cup ride shortens to 10 minutes, making it a su
 tea_cup = FunPark.Ride.change(tea_cup, %{wait_time: 10})
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Ride{
+  id: 323,
+  name: "Tea Cup",
+  min_age: 0,
+  min_height: 0,
+  wait_time: 10,
+  online: true,
+  tags: []
+}
+```
+
 ```elixir
 FunPark.Ride.suggested?(tea_cup)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+true
 ```
 
 ## Predicates That Span Contexts
@@ -178,8 +246,38 @@ roller_mtn = FunPark.Ride.make(
 )
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Ride{
+  id: 387,
+  name: "Roller Mountain",
+  min_age: 12,
+  min_height: 120,
+  wait_time: 0,
+  online: true,
+  tags: []
+}
+```
+
 ```elixir
 alice = FunPark.Patron.make("Alice", 13, 119)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Patron{
+  id: 451,
+  name: "Alice",
+  age: 13,
+  height: 119,
+  ticket_tier: :basic,
+  fast_passes: [],
+  reward_points: 0,
+  likes: [],
+  dislikes: []
+}
 ```
 
 Alice meets the age requirement but does not meet the height requirement:
@@ -188,8 +286,20 @@ Alice meets the age requirement but does not meet the height requirement:
 alice |> FunPark.Ride.old_enough?(roller_mtn)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+true
+```
+
 ```elixir
 alice |> FunPark.Ride.tall_enough?(roller_mtn)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+false
 ```
 
 This means Alice is not eligible to ride Roller Mountain:
@@ -198,14 +308,42 @@ This means Alice is not eligible to ride Roller Mountain:
 alice |> FunPark.Ride.eligible?(roller_mtn)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+false
+```
+
 However, if Alice grows a bit over the summer, she will be eligible:
 
 ```elixir
 alice = FunPark.Patron.change(alice, %{height: 121})
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Patron{
+  id: 451,
+  name: "Alice",
+  age: 13,
+  height: 121,
+  ticket_tier: :basic,
+  fast_passes: [],
+  reward_points: 0,
+  likes: [],
+  dislikes: []
+}
+```
+
 ```elixir
 alice |> FunPark.Ride.eligible?(roller_mtn)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+true
 ```
 
 ## Compose Multi-Arity Functions with Curry
@@ -254,11 +392,23 @@ Now we can check whether Roller Mountain is a suggested ride for Alice:
 alice |> FunPark.Ride.suggested?(roller_mtn)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+true
+```
+
 If we take Roller Mountain offline, the result changes:
 
 ```elixir
 roller_mtn = FunPark.Ride.change(roller_mtn, %{online: false})
 alice |> FunPark.Ride.suggested?(roller_mtn)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+false
 ```
 
 ## Harness Predicates for Collections
@@ -285,6 +435,12 @@ rides = [
 online? = &FunPark.Ride.online?/1
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+&FunPark.Ride.online?/1
+```
+
 ### Predicate Checks
 
 Are all rides online? If not, are any available?
@@ -293,8 +449,20 @@ Are all rides online? If not, are any available?
 rides |> Enum.all?(online?)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+false
+```
+
 ```elixir
 rides |> Enum.any?(online?)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+true
 ```
 
 ### Counting
@@ -305,6 +473,12 @@ To monitor availability, it helps to know how many rides are currently online:
 rides |> Enum.count(online?)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+3
+```
+
 ### Finding Elements
 
 Sometimes it's useful to locate the first ride that's online—both the ride itself and its position in the list:
@@ -313,8 +487,28 @@ Sometimes it's useful to locate the first ride that's online—both the ride its
 rides |> Enum.find(online?)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Ride{
+  id: 899,
+  name: "Thunder Loop",
+  min_age: 0,
+  min_height: 0,
+  wait_time: 0,
+  online: true,
+  tags: []
+}
+```
+
 ```elixir
 rides |> Enum.find_index(online?)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+0
 ```
 
 ### Filtering Elements
@@ -325,12 +519,80 @@ Sometimes we just want a clean list of rides that are currently online:
 rides |> Enum.filter(online?)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+[
+  %FunPark.Ride{
+    id: 899,
+    name: "Thunder Loop",
+    min_age: 0,
+    min_height: 0,
+    wait_time: 0,
+    online: true,
+    tags: []
+  },
+  %FunPark.Ride{
+    id: 1027,
+    name: "Rocket Ridge",
+    min_age: 0,
+    min_height: 0,
+    wait_time: 0,
+    online: true,
+    tags: []
+  },
+  %FunPark.Ride{
+    id: 1155,
+    name: "Nebula Falls",
+    min_age: 0,
+    min_height: 0,
+    wait_time: 0,
+    online: true,
+    tags: []
+  }
+]
+```
+
 ### Rejecting Elements
 
 Or the opposite—a list of all rides that are currently not online:
 
 ```elixir
 rides |> Enum.reject(online?)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+[
+  %FunPark.Ride{
+    id: 963,
+    name: "Ghost Hollow",
+    min_age: 0,
+    min_height: 0,
+    wait_time: 0,
+    online: false,
+    tags: []
+  },
+  %FunPark.Ride{
+    id: 1091,
+    name: "Jungle River",
+    min_age: 0,
+    min_height: 0,
+    wait_time: 0,
+    online: false,
+    tags: []
+  },
+  %FunPark.Ride{
+    id: 1219,
+    name: "Timber Twister",
+    min_age: 0,
+    min_height: 0,
+    wait_time: 0,
+    online: false,
+    tags: []
+  }
+]
 ```
 
 ### Taking and Dropping While
@@ -341,10 +603,78 @@ To reason about ride availability at the top of the list, we can isolate the ini
 rides |> Enum.take_while(online?)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+[
+  %FunPark.Ride{
+    id: 899,
+    name: "Thunder Loop",
+    min_age: 0,
+    min_height: 0,
+    wait_time: 0,
+    online: true,
+    tags: []
+  }
+]
+```
+
 And then examine everything that comes after—starting with the first offline ride:
 
 ```elixir
 rides |> Enum.drop_while(online?)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+[
+  %FunPark.Ride{
+    id: 963,
+    name: "Ghost Hollow",
+    min_age: 0,
+    min_height: 0,
+    wait_time: 0,
+    online: false,
+    tags: []
+  },
+  %FunPark.Ride{
+    id: 1027,
+    name: "Rocket Ridge",
+    min_age: 0,
+    min_height: 0,
+    wait_time: 0,
+    online: true,
+    tags: []
+  },
+  %FunPark.Ride{
+    id: 1091,
+    name: "Jungle River",
+    min_age: 0,
+    min_height: 0,
+    wait_time: 0,
+    online: false,
+    tags: []
+  },
+  %FunPark.Ride{
+    id: 1155,
+    name: "Nebula Falls",
+    min_age: 0,
+    min_height: 0,
+    wait_time: 0,
+    online: true,
+    tags: []
+  },
+  %FunPark.Ride{
+    id: 1219,
+    name: "Timber Twister",
+    min_age: 0,
+    min_height: 0,
+    wait_time: 0,
+    online: false,
+    tags: []
+  }
+]
 ```
 
 ### Splitting a List
@@ -353,6 +683,69 @@ Rather than taking or dropping, we can split the list at the first offline ride:
 
 ```elixir
 rides |> Enum.split_while(online?)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+{[
+   %FunPark.Ride{
+     id: 899,
+     name: "Thunder Loop",
+     min_age: 0,
+     min_height: 0,
+     wait_time: 0,
+     online: true,
+     tags: []
+   }
+ ],
+ [
+   %FunPark.Ride{
+     id: 963,
+     name: "Ghost Hollow",
+     min_age: 0,
+     min_height: 0,
+     wait_time: 0,
+     online: false,
+     tags: []
+   },
+   %FunPark.Ride{
+     id: 1027,
+     name: "Rocket Ridge",
+     min_age: 0,
+     min_height: 0,
+     wait_time: 0,
+     online: true,
+     tags: []
+   },
+   %FunPark.Ride{
+     id: 1091,
+     name: "Jungle River",
+     min_age: 0,
+     min_height: 0,
+     wait_time: 0,
+     online: false,
+     tags: []
+   },
+   %FunPark.Ride{
+     id: 1155,
+     name: "Nebula Falls",
+     min_age: 0,
+     min_height: 0,
+     wait_time: 0,
+     online: true,
+     tags: []
+   },
+   %FunPark.Ride{
+     id: 1219,
+     name: "Timber Twister",
+     min_age: 0,
+     min_height: 0,
+     wait_time: 0,
+     online: false,
+     tags: []
+   }
+ ]}
 ```
 
 ### Suggested Rides
@@ -377,10 +770,51 @@ alice = FunPark.Patron.make("Alice", 13, 150)
 beth = FunPark.Patron.make("Beth", 15, 110)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Patron{
+  id: 2179,
+  name: "Beth",
+  age: 15,
+  height: 110,
+  ticket_tier: :basic,
+  fast_passes: [],
+  reward_points: 0,
+  likes: [],
+  dislikes: []
+}
+```
+
 Alice is tall enough for Roller Mountain, but not old enough for the Haunted Mansion. Her suggested rides include Tea Cup and Roller Mountain:
 
 ```elixir
 alice |> FunPark.Ride.suggested_rides(rides)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+[
+  %FunPark.Ride{
+    id: 1923,
+    name: "Tea Cup",
+    min_age: 0,
+    min_height: 0,
+    wait_time: 0,
+    online: true,
+    tags: []
+  },
+  %FunPark.Ride{
+    id: 1987,
+    name: "Roller Mountain",
+    min_age: 0,
+    min_height: 120,
+    wait_time: 0,
+    online: true,
+    tags: []
+  }
+]
 ```
 
 Beth meets the age requirement for Haunted Mansion but isn't tall enough for Roller Mountain. Her suggested rides include Tea Cup and Haunted Mansion:
@@ -389,12 +823,53 @@ Beth meets the age requirement for Haunted Mansion but isn't tall enough for Rol
 beth |> FunPark.Ride.suggested_rides(rides)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+[
+  %FunPark.Ride{
+    id: 1923,
+    name: "Tea Cup",
+    min_age: 0,
+    min_height: 0,
+    wait_time: 0,
+    online: true,
+    tags: []
+  },
+  %FunPark.Ride{
+    id: 2051,
+    name: "Haunted Mansion",
+    min_age: 14,
+    min_height: 0,
+    wait_time: 0,
+    online: true,
+    tags: []
+  }
+]
+```
+
 Later, the wait time for Tea Cup increases, making it no longer eligible for Beth:
 
 ```elixir
 tea_cup = FunPark.Ride.change(tea_cup, %{wait_time: 40})
 rides = [tea_cup, roller_mtn, haunted_mansion]
 beth |> FunPark.Ride.suggested_rides(rides)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+[
+  %FunPark.Ride{
+    id: 2051,
+    name: "Haunted Mansion",
+    min_age: 14,
+    min_height: 0,
+    wait_time: 0,
+    online: true,
+    tags: []
+  }
+]
 ```
 
 ## Model the FastPass
@@ -427,16 +902,78 @@ fast_pass = FunPark.FastPass.make(tea_cup, datetime)
 alice = FunPark.Patron.make("Alice", 13, 150)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Patron{
+  id: 2691,
+  name: "Alice",
+  age: 13,
+  height: 150,
+  ticket_tier: :basic,
+  fast_passes: [],
+  reward_points: 0,
+  likes: [],
+  dislikes: []
+}
+```
+
 Alice can add a fast pass for the Tea Cup ride:
 
 ```elixir
 alice = FunPark.Patron.add_fast_pass(alice, fast_pass)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Patron{
+  id: 2691,
+  name: "Alice",
+  age: 13,
+  height: 150,
+  ticket_tier: :basic,
+  fast_passes: [
+    %FunPark.FastPass{
+      id: 2627,
+      ride: %FunPark.Ride{
+        id: 2563,
+        name: "Tea Cup",
+        min_age: 0,
+        min_height: 0,
+        wait_time: 0,
+        online: true,
+        tags: []
+      },
+      time: ~U[2025-06-01 13:00:00Z]
+    }
+  ],
+  reward_points: 0,
+  likes: [],
+  dislikes: []
+}
+```
+
 And she can remove it when it's no longer needed:
 
 ```elixir
 alice = FunPark.Patron.remove_fast_pass(alice, fast_pass)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Patron{
+  id: 2691,
+  name: "Alice",
+  age: 13,
+  height: 150,
+  ticket_tier: :basic,
+  fast_passes: [],
+  reward_points: 0,
+  likes: [],
+  dislikes: []
+}
 ```
 
 ### Validity Rules in the FastPass Context
@@ -477,10 +1014,32 @@ fast_pass = FunPark.FastPass.make(haunted_mansion, datetime)
 alice = FunPark.Patron.make("Alice", 13, 150)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Patron{
+  id: 3011,
+  name: "Alice",
+  age: 13,
+  height: 150,
+  ticket_tier: :basic,
+  fast_passes: [],
+  reward_points: 0,
+  likes: [],
+  dislikes: []
+}
+```
+
 Without a fast pass, Alice is not eligible for a the Haunted Mansion:
 
 ```elixir
 alice |> FunPark.Ride.fast_pass?(haunted_mansion)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+false
 ```
 
 Let's give her one:
@@ -489,10 +1048,46 @@ Let's give her one:
 alice = FunPark.Patron.add_fast_pass(alice, fast_pass)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Patron{
+  id: 3011,
+  name: "Alice",
+  age: 13,
+  height: 150,
+  ticket_tier: :basic,
+  fast_passes: [
+    %FunPark.FastPass{
+      id: 2947,
+      ride: %FunPark.Ride{
+        id: 2883,
+        name: "Haunted Mansion",
+        min_age: 14,
+        min_height: 0,
+        wait_time: 0,
+        online: true,
+        tags: []
+      },
+      time: ~U[2025-06-01 13:00:00Z]
+    }
+  ],
+  reward_points: 0,
+  likes: [],
+  dislikes: []
+}
+```
+
 Now she's eligible:
 
 ```elixir
 alice |> FunPark.Ride.fast_pass?(haunted_mansion)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+true
 ```
 
 ````markdown
@@ -553,10 +1148,58 @@ datetime = DateTime.new!(~D[2025-06-01], ~T[13:00:00])
 fast_pass = FunPark.FastPass.make(haunted_mansion, datetime)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.FastPass{
+  id: 3523,
+  ride: %FunPark.Ride{
+    id: 3459,
+    name: "Haunted Mansion",
+    min_age: 14,
+    min_height: 0,
+    wait_time: 0,
+    online: true,
+    tags: []
+  },
+  time: ~U[2025-06-01 13:00:00Z]
+}
+```
+
 We'll give Alice a fast pass to the Haunted Mansion:
 
 ```elixir
 alice = FunPark.Patron.add_fast_pass(alice, fast_pass)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Patron{
+  id: 3331,
+  name: "Alice",
+  age: 13,
+  height: 150,
+  ticket_tier: :basic,
+  fast_passes: [
+    %FunPark.FastPass{
+      id: 3523,
+      ride: %FunPark.Ride{
+        id: 3459,
+        name: "Haunted Mansion",
+        min_age: 14,
+        min_height: 0,
+        wait_time: 0,
+        online: true,
+        tags: []
+      },
+      time: ~U[2025-06-01 13:00:00Z]
+    }
+  ],
+  reward_points: 0,
+  likes: [],
+  dislikes: []
+}
 ```
 
 Although Alice has a fast pass, she's too young to ride the Haunted Mansion. Meanwhile, Beth—who doesn't have a fast pass—is also ineligible for the fast lane:
@@ -565,8 +1208,20 @@ Although Alice has a fast pass, she's too young to ride the Haunted Mansion. Mea
 alice |> FunPark.Ride.fast_pass_lane?(haunted_mansion)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+false
+```
+
 ```elixir
 beth |> FunPark.Ride.fast_pass_lane?(haunted_mansion)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+false
 ```
 
 Later, Beth upgrades her ticket. As a VIP, she's now eligible for the fast lane—even without a fast pass:
@@ -574,6 +1229,12 @@ Later, Beth upgrades her ticket. As a VIP, she's now eligible for the fast lane�
 ```elixir
 beth = FunPark.Patron.change(beth, %{ticket_tier: :vip})
 beth |> FunPark.Ride.fast_pass_lane?(haunted_mansion)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+true
 ```
 
 ## Fold Conditional Logic
@@ -602,10 +1263,30 @@ Let's start by generating the Tea Cup ride with a 100-minute wait:
 tea_cup = FunPark.Ride.make("Tea Cup", online: true, wait_time: 100)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Ride{
+  id: 3779,
+  name: "Tea Cup",
+  min_age: 0,
+  min_height: 0,
+  wait_time: 100,
+  online: true,
+  tags: []
+}
+```
+
 Earlier, our `Ride` expert introduced `suggested?/1`, a predicate that returns `true` for rides that are online and have a wait under 30 minutes. With a 100-minute wait, the Tea Cup doesn't qualify:
 
 ```elixir
 FunPark.Ride.suggested?(tea_cup)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+false
 ```
 
 We can fold the predicate result into a string—`"Yes"` or `"No"`—using `fold_l/3`:
@@ -616,8 +1297,20 @@ yes_or_no = fn val, pred ->
     pred.(val) end, fn -> "Yes" end, fn -> "No" end) end
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+#Function<41.81571850/2 in :erl_eval.expr/6>
+```
+
 This lets us convert branching logic into a single result:
 
 ```elixir
 yes_or_no.(tea_cup, &FunPark.Ride.suggested?/1)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+"No"
 ```
