@@ -1,3 +1,5 @@
+<!-- livebook:{"persist_outputs":true} -->
+
 # Access Shared Environment with Reader
 
 ```elixir
@@ -72,8 +74,30 @@ First, let's generate a patron and a value:
 alice = FunPark.Patron.make("Alice", 15, 130)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Patron{
+  id: 2,
+  name: "Alice",
+  age: 15,
+  height: 130,
+  ticket_tier: :basic,
+  fast_passes: [],
+  reward_points: 0,
+  likes: [],
+  dislikes: []
+}
+```
+
 ```elixir
 value = 2
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+2
 ```
 
 And define a couple of simple functions:
@@ -83,14 +107,32 @@ square = fn n -> n * n end
 message = fn {n, patron} -> "#{patron.name} has #{n}" end
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+#Function<42.81571850/1 in :erl_eval.expr/6>
+```
+
 We can call each one on its own:
 
 ```elixir
 square.(value)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+4
+```
+
 ```elixir
 message.({value, alice})
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+"Alice has 2"
 ```
 
 One strategy is to tunnel, having the `square/1` accept and forward the patron information:
@@ -99,10 +141,22 @@ One strategy is to tunnel, having the `square/1` accept and forward the patron i
 square_tunnel = fn {n, patron} -> {square.(n), patron} end
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+#Function<42.81571850/1 in :erl_eval.expr/6>
+```
+
 Now they can be piped together:
 
 ```elixir
 {value, alice} |> square_tunnel.() |> message.()
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+"Alice has 4"
 ```
 
 Instead, let's update our `message/1` function to take the number and retrieve the patron from the `Reader`:
@@ -113,6 +167,12 @@ reader_message = fn n -> FunPark.Reader.asks(
 ) end
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+#Function<42.81571850/1 in :erl_eval.expr/6>
+```
+
 Now we can build the pipeline:
 
 ```elixir
@@ -121,10 +181,22 @@ deferred_message = FunPark.Reader.pure(value)
 |> FunPark.Monad.bind(reader_message)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Reader{run: #Function<1.118414679/1 in FunPark.Monad.FunPark.Reader.bind/2>}
+```
+
 We use `run/2` to resolve `deferred_message` with Alice:
 
 ```elixir
 FunPark.Reader.run(deferred_message, alice)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+"Alice has 4"
 ```
 
 And we can just as easily switch patrons:
@@ -133,8 +205,30 @@ And we can just as easily switch patrons:
 beth = FunPark.Patron.make("Beth", 16, 135)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Patron{
+  id: 578,
+  name: "Beth",
+  age: 16,
+  height: 135,
+  ticket_tier: :basic,
+  fast_passes: [],
+  reward_points: 0,
+  likes: [],
+  dislikes: []
+}
+```
+
 ```elixir
 FunPark.Reader.run(deferred_message, beth)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+"Beth has 4"
 ```
 
 ## Dependency Injection
@@ -145,11 +239,33 @@ Let's start again with Alice:
 alice = FunPark.Patron.make("Alice", 15, 130)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Patron{
+  id: 1474,
+  name: "Alice",
+  age: 15,
+  height: 130,
+  ticket_tier: :basic,
+  fast_passes: [],
+  reward_points: 0,
+  likes: [],
+  dislikes: []
+}
+```
+
 We'll define two services: one for production and one for testing:
 
 ```elixir
 prod_service = fn name -> "Hi, #{name}, from prod!" end
 test_service = fn name -> "Hi, #{name}, from test!" end
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+#Function<42.81571850/1 in :erl_eval.expr/6>
 ```
 
 The `deferred_greeting` function applies a patron's name to the injected service:
@@ -158,10 +274,22 @@ The `deferred_greeting` function applies a patron's name to the injected service
 deferred_greeting = fn p -> FunPark.Reader.asks(& &1.(p.name)) end
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+#Function<42.81571850/1 in :erl_eval.expr/6>
+```
+
 Now we can construct a deferred greeting for Alice:
 
 ```elixir
 alice_greeting = deferred_greeting.(alice)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Reader{run: #Function<42.81571850/1 in :erl_eval.expr/6>}
 ```
 
 And inject the test service:
@@ -170,10 +298,22 @@ And inject the test service:
 FunPark.Reader.run(alice_greeting, test_service)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+"Hi, Alice, from test!"
+```
+
 Or the production service:
 
 ```elixir
 FunPark.Reader.run(alice_greeting, prod_service)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+"Hi, Alice, from prod!"
 ```
 
 ## Shared Configuration
@@ -197,14 +337,40 @@ Our Apple Cart ride has a configuration:
 apple_config = %{min_age: 10, min_height: 120}
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%{min_age: 10, min_height: 120}
+```
+
 And we can create a `deferred_apple`—a ride that waits for its configuration:
 
 ```elixir
 deferred_apple = FunPark.Ride.make_from_env("Apple Cart")
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Reader{run: #Function<19.28483966/1 in FunPark.Ride.make_from_env/1>}
+```
+
 Using the Reader, we run the deferred ride with its config:
 
 ```elixir
 apple = FunPark.Reader.run(deferred_apple, apple_config)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Ride{
+  id: 1666,
+  name: "Apple Cart",
+  min_age: 10,
+  min_height: 120,
+  wait_time: 0,
+  online: true,
+  tags: []
+}
 ```
