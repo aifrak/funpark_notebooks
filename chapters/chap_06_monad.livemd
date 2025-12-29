@@ -1,3 +1,5 @@
+<!-- livebook:{"persist_outputs":true} -->
+
 # Compose in Context with Monads
 
 ```elixir
@@ -36,10 +38,90 @@ charles = FunPark.Patron.make("Charles", 13, 130, reward_points: 50)
 patrons = [alice, beth, charles]
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+[
+  %FunPark.Patron{
+    id: 144,
+    name: "Alice",
+    age: 14,
+    height: 125,
+    ticket_tier: :basic,
+    fast_passes: [],
+    reward_points: 25,
+    likes: [],
+    dislikes: []
+  },
+  %FunPark.Patron{
+    id: 208,
+    name: "Beth",
+    age: 15,
+    height: 140,
+    ticket_tier: :basic,
+    fast_passes: [],
+    reward_points: 10,
+    likes: [],
+    dislikes: []
+  },
+  %FunPark.Patron{
+    id: 272,
+    name: "Charles",
+    age: 13,
+    height: 130,
+    ticket_tier: :basic,
+    fast_passes: [],
+    reward_points: 50,
+    likes: [],
+    dislikes: []
+  }
+]
+```
+
 With Elixir's `Enum.map/2` functor, we can apply `promotion/2` to each patron, adding 10 to their reward points:
 
 ```elixir
 patrons |> Enum.map(&FunPark.Patron.promotion(&1, 10))
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+[
+  %FunPark.Patron{
+    id: 144,
+    name: "Alice",
+    age: 14,
+    height: 125,
+    ticket_tier: :basic,
+    fast_passes: [],
+    reward_points: 35,
+    likes: [],
+    dislikes: []
+  },
+  %FunPark.Patron{
+    id: 208,
+    name: "Beth",
+    age: 15,
+    height: 140,
+    ticket_tier: :basic,
+    fast_passes: [],
+    reward_points: 20,
+    likes: [],
+    dislikes: []
+  },
+  %FunPark.Patron{
+    id: 272,
+    name: "Charles",
+    age: 13,
+    height: 130,
+    ticket_tier: :basic,
+    fast_passes: [],
+    reward_points: 60,
+    likes: [],
+    dislikes: []
+  }
+]
 ```
 
 ### Sequence Computations
@@ -50,10 +132,22 @@ First, we need to define a Kleisli function:
 kleisli_fn = fn x -> if rem(x, 2) == 0, do: [x * x], else: [] end
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+#Function<42.81571850/1 in :erl_eval.expr/6>
+```
+
 Next, we need a list of values:
 
 ```elixir
 list = [1, 2, 3, 4, 5, 6]
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+[1, 2, 3, 4, 5, 6]
 ```
 
 When we apply our Kleisli function:
@@ -62,10 +156,22 @@ When we apply our Kleisli function:
 list |> Enum.flat_map(kleisli_fn)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+[4, 16, 36]
+```
+
 ### Independent Computations
 
 ```elixir
 ap = fn values, funcs -> for f <- funcs, v <- values, do: f.(v) end
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+#Function<41.81571850/2 in :erl_eval.expr/6>
 ```
 
 Next, we need a couple of simple functions, `add_one/1` and `add_two/1`:
@@ -76,16 +182,34 @@ add_two = fn x -> x + 2 end
 func_list = [add_one, add_two]
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+[#Function<42.81571850/1 in :erl_eval.expr/6>, #Function<42.81571850/1 in :erl_eval.expr/6>]
+```
+
 And we need a list of values:
 
 ```elixir
 list = [10, 20, 30]
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+[10, 20, 30]
+```
+
 Finally, we use `ap` to apply our list of functions to our list of values:
 
 ```elixir
 list |> ap.(func_list)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+[11, 21, 31, 12, 22, 32]
 ```
 
 ### The Protocol
@@ -119,10 +243,44 @@ Let's start by generating a patron:
 alice = FunPark.Patron.make("Alice", 14, 130)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Patron{
+  id: 656,
+  name: "Alice",
+  age: 14,
+  height: 130,
+  ticket_tier: :basic,
+  fast_passes: [],
+  reward_points: 0,
+  likes: [],
+  dislikes: []
+}
+```
+
 We can lift Alice into the `Identity` context:
 
 ```elixir
 alice_monad = FunPark.Identity.pure(alice)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Identity{
+  value: %FunPark.Patron{
+    id: 656,
+    name: "Alice",
+    age: 14,
+    height: 130,
+    ticket_tier: :basic,
+    fast_passes: [],
+    reward_points: 0,
+    likes: [],
+    dislikes: []
+  }
+}
 ```
 
 And we can extract her:
@@ -131,10 +289,32 @@ And we can extract her:
 FunPark.Identity.extract(alice_monad)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Patron{
+  id: 656,
+  name: "Alice",
+  age: 14,
+  height: 130,
+  ticket_tier: :basic,
+  fast_passes: [],
+  reward_points: 0,
+  likes: [],
+  dislikes: []
+}
+```
+
 In fact, we can pass anything through the `Identity` monad with no effect:
 
 ```elixir
 :apple |> FunPark.Identity.pure() |> FunPark.Identity.extract()
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+:apple
 ```
 
 ### Equality
@@ -158,14 +338,42 @@ alice = FunPark.Patron.make("Alice", 14, 130)
 beth = FunPark.Patron.make("Beth", 16, 125)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Patron{
+  id: 912,
+  name: "Beth",
+  age: 16,
+  height: 125,
+  ticket_tier: :basic,
+  fast_passes: [],
+  reward_points: 0,
+  likes: [],
+  dislikes: []
+}
+```
+
 The `Eq` protocol knows when they are equivalent:
 
 ```elixir
 FunPark.Eq.Utils.eq?(alice, alice)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+true
+```
+
 ```elixir
 FunPark.Eq.Utils.eq?(alice, beth)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+false
 ```
 
 Even when they're wrapped in the `Identity` monad:
@@ -177,8 +385,20 @@ beth_monad = FunPark.Identity.pure(beth)
 FunPark.Eq.Utils.eq?(alice_monad, alice_monad)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+true
+```
+
 ```elixir
 FunPark.Eq.Utils.eq?(alice_monad, beth_monad)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+false
 ```
 
 ### Ordering
@@ -204,10 +424,32 @@ alice = FunPark.Patron.make("Alice", 14, 135, ticket_tier: :vip)
 beth = FunPark.Patron.make("Beth", 16, 125)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Patron{
+  id: 1040,
+  name: "Beth",
+  age: 16,
+  height: 125,
+  ticket_tier: :basic,
+  fast_passes: [],
+  reward_points: 0,
+  likes: [],
+  dislikes: []
+}
+```
+
 The `Patron` context's default ordering is by name, so Alice is less than Beth:
 
 ```elixir
 FunPark.Ord.Utils.compare(alice, beth)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+:lt
 ```
 
 It makes no difference if they are wrapped in `Identity` monads:
@@ -217,6 +459,12 @@ alice_monad = FunPark.Identity.pure(alice)
 beth_monad = FunPark.Identity.pure(beth)
 
 FunPark.Ord.Utils.compare(alice_monad, beth_monad)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+:lt
 ```
 
 ### Lift Eq and Order
@@ -268,10 +516,37 @@ alice = FunPark.Patron.make("Alice", 14, 135, ticket_tier: :vip)
 beth = FunPark.Patron.make("Beth", 16, 125)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Patron{
+  id: 1168,
+  name: "Beth",
+  age: 16,
+  height: 125,
+  ticket_tier: :basic,
+  fast_passes: [],
+  reward_points: 0,
+  likes: [],
+  dislikes: []
+}
+```
+
 We have custom ordering based on priority:
 
 ```elixir
 priority_ord = FunPark.Patron.ord_by_priority()
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+%{
+  ge?: #Function<3.54941642/2 in FunPark.Monoid.FunPark.Monoid.Ord.append/2>,
+  gt?: #Function<2.54941642/2 in FunPark.Monoid.FunPark.Monoid.Ord.append/2>,
+  le?: #Function<1.54941642/2 in FunPark.Monoid.FunPark.Monoid.Ord.append/2>,
+  lt?: #Function<0.54941642/2 in FunPark.Monoid.FunPark.Monoid.Ord.append/2>
+}
 ```
 
 Within the context of priority, Alice—with her VIP status—is greater than Beth:
@@ -280,10 +555,27 @@ Within the context of priority, Alice—with her VIP status—is greater than Be
 FunPark.Ord.Utils.compare(alice, beth, priority_ord)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+:gt
+```
+
 We can lift that `priority_ord` into the Identity context:
 
 ```elixir
 lifted_priority_ord = FunPark.Identity.lift_ord(priority_ord)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+%{
+  ge?: #Function<6.16217634/2 in FunPark.Identity.lift_ord/1>,
+  gt?: #Function<5.16217634/2 in FunPark.Identity.lift_ord/1>,
+  le?: #Function<4.16217634/2 in FunPark.Identity.lift_ord/1>,
+  lt?: #Function<3.16217634/2 in FunPark.Identity.lift_ord/1>
+}
 ```
 
 And we get the same result for our wrapped patrons:
@@ -293,6 +585,12 @@ alice_monad = FunPark.Identity.pure(alice)
 beth_monad = FunPark.Identity.pure(beth)
 
 FunPark.Ord.Utils.compare(alice_monad, beth_monad, lifted_priority_ord)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+:gt
 ```
 
 ### Monadic Logic
@@ -329,10 +627,38 @@ Let's generate the Tea Cup ride:
 tea_cup = FunPark.Ride.make("Tea Cup", wait_time: 10)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Ride{
+  id: 1232,
+  name: "Tea Cup",
+  min_age: 0,
+  min_height: 0,
+  wait_time: 10,
+  online: true,
+  tags: []
+}
+```
+
 We can add 20 minutes:
 
 ```elixir
 FunPark.Ride.add_wait_time(tea_cup, 20)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Ride{
+  id: 1232,
+  name: "Tea Cup",
+  min_age: 0,
+  min_height: 0,
+  wait_time: 30,
+  online: true,
+  tags: []
+}
 ```
 
 And because `add_wait_time/2` is closed under its operation, we can use the pipe operator to compose multiple sensors:
@@ -344,10 +670,40 @@ tea_cup
   |> FunPark.Ride.add_wait_time(5)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Ride{
+  id: 1232,
+  name: "Tea Cup",
+  min_age: 0,
+  min_height: 0,
+  wait_time: 45,
+  online: true,
+  tags: []
+}
+```
+
 The same applies within the `Identity` context. First, let's lift the Tea Cup ride:
 
 ```elixir
 tea_cup_m = FunPark.Identity.pure(tea_cup)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Identity{
+  value: %FunPark.Ride{
+    id: 1232,
+    name: "Tea Cup",
+    min_age: 0,
+    min_height: 0,
+    wait_time: 10,
+    online: true,
+    tags: []
+  }
+}
 ```
 
 To make things easier, we'll curry the `add_wait_time/2` function:
@@ -356,10 +712,32 @@ To make things easier, we'll curry the `add_wait_time/2` function:
 add_wait = FunPark.Utils.curry_r(&FunPark.Ride.add_wait_time/2)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+#Function<3.64560675/1 in FunPark.Utils.curry_r/3>
+```
+
 Now we can then apply it to the monad using `map/2`:
 
 ```elixir
 FunPark.Monad.map(tea_cup_m, add_wait.(20))
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Identity{
+  value: %FunPark.Ride{
+    id: 1232,
+    name: "Tea Cup",
+    min_age: 0,
+    min_height: 0,
+    wait_time: 30,
+    online: true,
+    tags: []
+  }
+}
 ```
 
 And again, we can compose updates from three sensors:
@@ -371,12 +749,34 @@ tea_cup_m
   |> FunPark.Monad.map(add_wait.(5))
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Identity{
+  value: %FunPark.Ride{
+    id: 1232,
+    name: "Tea Cup",
+    min_age: 0,
+    min_height: 0,
+    wait_time: 45,
+    online: true,
+    tags: []
+  }
+}
+```
+
 Even so, we can model our sensors so they choose the structure:
 
 ```elixir
 sensor_1 = &FunPark.Identity.pure(add_wait.(10).(&1))
 sensor_2 = &FunPark.Identity.pure(add_wait.(5).(&1))
 sensor_3 = &FunPark.Identity.pure(add_wait.(20).(&1))
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+#Function<42.81571850/1 in :erl_eval.expr/6>
 ```
 
 We chain Kleisli functions with `bind/2`:
@@ -386,4 +786,20 @@ tea_cup_m
 |> FunPark.Monad.bind(sensor_1)
 |> FunPark.Monad.bind(sensor_2)
 |> FunPark.Monad.bind(sensor_3)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Identity{
+  value: %FunPark.Ride{
+    id: 1232,
+    name: "Tea Cup",
+    min_age: 0,
+    min_height: 0,
+    wait_time: 45,
+    online: true,
+    tags: []
+  }
+}
 ```
