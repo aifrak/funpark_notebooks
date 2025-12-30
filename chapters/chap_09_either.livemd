@@ -1,3 +1,5 @@
+<!-- livebook:{"persist_outputs":true} -->
+
 # Model Outcomes with Either
 
 ```elixir
@@ -123,14 +125,54 @@ haunted_mansion = FunPark.Ride.make(
 )
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Ride{
+  id: 387,
+  name: "Haunted Mansion",
+  min_age: 14,
+  min_height: 120,
+  wait_time: 0,
+  online: true,
+  tags: []
+}
+```
+
 Alice is tall enough but too young:
 
 ```elixir
 FunPark.Ride.FastLane.ensure_height(alice, haunted_mansion)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Either.Right{
+  right: %FunPark.Patron{
+    id: 259,
+    name: "Alice",
+    age: 12,
+    height: 125,
+    ticket_tier: :vip,
+    fast_passes: [],
+    reward_points: 0,
+    likes: [],
+    dislikes: []
+  }
+}
+```
+
 ```elixir
 FunPark.Ride.FastLane.ensure_age(alice, haunted_mansion)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Either.Left{
+  left: %FunPark.Errors.ValidationError{errors: ["Alice is not old enough"]}
+}
 ```
 
 When we check Beth, although she meets the age requirement, she is too short:
@@ -139,8 +181,34 @@ When we check Beth, although she meets the age requirement, she is too short:
 FunPark.Ride.FastLane.ensure_age(beth, haunted_mansion)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Either.Right{
+  right: %FunPark.Patron{
+    id: 323,
+    name: "Beth",
+    age: 16,
+    height: 115,
+    ticket_tier: :basic,
+    fast_passes: [],
+    reward_points: 0,
+    likes: [],
+    dislikes: []
+  }
+}
+```
+
 ```elixir
 FunPark.Ride.FastLane.ensure_height(beth, haunted_mansion)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Either.Left{
+  left: %FunPark.Errors.ValidationError{errors: ["Beth is not tall enough"]}
+}
 ```
 
 ### Combining Eligibility
@@ -161,8 +229,24 @@ At this point, neither Alice nor Beth is eligible—but for different reasons:
 FunPark.Ride.FastLane.ensure_eligibility(alice, haunted_mansion)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Either.Left{
+  left: %FunPark.Errors.ValidationError{errors: ["Alice is not old enough"]}
+}
+```
+
 ```elixir
 FunPark.Ride.FastLane.ensure_eligibility(beth, haunted_mansion)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Either.Left{
+  left: %FunPark.Errors.ValidationError{errors: ["Beth is not tall enough"]}
+}
 ```
 
 Let's look at Charles, who is both too young and too short:
@@ -171,8 +255,32 @@ Let's look at Charles, who is both too young and too short:
 charles = FunPark.Patron.make("Charles", 13, 115)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Patron{
+  id: 451,
+  name: "Charles",
+  age: 13,
+  height: 115,
+  ticket_tier: :basic,
+  fast_passes: [],
+  reward_points: 0,
+  likes: [],
+  dislikes: []
+}
+```
+
 ```elixir
 FunPark.Ride.FastLane.ensure_eligibility(charles, haunted_mansion)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Either.Left{
+  left: %FunPark.Errors.ValidationError{errors: ["Charles is not old enough"]}
+}
 ```
 
 Now let's check Dave:
@@ -181,10 +289,44 @@ Now let's check Dave:
 dave = FunPark.Patron.make("Dave", 16, 140)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Patron{
+  id: 515,
+  name: "Dave",
+  age: 16,
+  height: 140,
+  ticket_tier: :basic,
+  fast_passes: [],
+  reward_points: 0,
+  likes: [],
+  dislikes: []
+}
+```
+
 Dave meets the ride's eligibility criteria:
 
 ```elixir
 FunPark.Ride.FastLane.ensure_eligibility(dave, haunted_mansion)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Either.Right{
+  right: %FunPark.Patron{
+    id: 515,
+    name: "Dave",
+    age: 16,
+    height: 140,
+    ticket_tier: :basic,
+    fast_passes: [],
+    reward_points: 0,
+    likes: [],
+    dislikes: []
+  }
+}
 ```
 
 ### Ensure a Fast Pass
@@ -207,6 +349,14 @@ Dave is eligible to ride the Haunted Mansion—but he does not have a fast pass:
 FunPark.Ride.FastLane.ensure_fast_pass(dave, haunted_mansion)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Either.Left{
+  left: %FunPark.Errors.ValidationError{errors: ["Dave does not have a fast pass"]}
+}
+```
+
 Let's give him one:
 
 ```elixir
@@ -215,10 +365,72 @@ fast_pass = FunPark.FastPass.make(haunted_mansion, datetime)
 dave = FunPark.Patron.add_fast_pass(dave, fast_pass)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Patron{
+  id: 515,
+  name: "Dave",
+  age: 16,
+  height: 140,
+  ticket_tier: :basic,
+  fast_passes: [
+    %FunPark.FastPass{
+      id: 707,
+      ride: %FunPark.Ride{
+        id: 387,
+        name: "Haunted Mansion",
+        min_age: 14,
+        min_height: 120,
+        wait_time: 0,
+        online: true,
+        tags: []
+      },
+      time: ~U[2025-06-01 13:00:00Z]
+    }
+  ],
+  reward_points: 0,
+  likes: [],
+  dislikes: []
+}
+```
+
 Now, Dave can enter the Haunted Mansion's fast lane:
 
 ```elixir
 FunPark.Ride.FastLane.ensure_fast_pass(dave, haunted_mansion)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Either.Right{
+  right: %FunPark.Patron{
+    id: 515,
+    name: "Dave",
+    age: 16,
+    height: 140,
+    ticket_tier: :basic,
+    fast_passes: [
+      %FunPark.FastPass{
+        id: 707,
+        ride: %FunPark.Ride{
+          id: 387,
+          name: "Haunted Mansion",
+          min_age: 14,
+          min_height: 120,
+          wait_time: 0,
+          online: true,
+          tags: []
+        },
+        time: ~U[2025-06-01 13:00:00Z]
+      }
+    ],
+    reward_points: 0,
+    likes: [],
+    dislikes: []
+  }
+}
 ```
 
 But what about Elsie? She doesn't have a fast pass, but she is a VIP:
@@ -227,8 +439,32 @@ But what about Elsie? She doesn't have a fast pass, but she is a VIP:
 elsie = FunPark.Patron.make("Elsie", 17, 135, ticket_tier: :vip)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Patron{
+  id: 771,
+  name: "Elsie",
+  age: 17,
+  height: 135,
+  ticket_tier: :vip,
+  fast_passes: [],
+  reward_points: 0,
+  likes: [],
+  dislikes: []
+}
+```
+
 ```elixir
 FunPark.Ride.FastLane.ensure_fast_pass(elsie, haunted_mansion)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Either.Left{
+  left: %FunPark.Errors.ValidationError{errors: ["Elsie does not have a fast pass"]}
+}
 ```
 
 ### Ensure a Fast Pass or VIP Access
@@ -249,6 +485,24 @@ Now, with her VIP status, Elsie has access to the fast lane:
 FunPark.Ride.FastLane.ensure_vip_or_fast_pass(elsie, haunted_mansion)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Either.Right{
+  right: %FunPark.Patron{
+    id: 771,
+    name: "Elsie",
+    age: 17,
+    height: 135,
+    ticket_tier: :vip,
+    fast_passes: [],
+    reward_points: 0,
+    likes: [],
+    dislikes: []
+  }
+}
+```
+
 ### Ensure Fast Lane Access
 
 ````markdown
@@ -267,20 +521,94 @@ Let's see if our patrons can enter the fast lane:
 FunPark.Ride.FastLane.ensure_fast_pass_lane(alice, haunted_mansion)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Either.Left{
+  left: %FunPark.Errors.ValidationError{errors: ["Alice is not old enough"]}
+}
+```
+
 ```elixir
 FunPark.Ride.FastLane.ensure_fast_pass_lane(beth, haunted_mansion)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Either.Left{
+  left: %FunPark.Errors.ValidationError{errors: ["Beth is not tall enough"]}
+}
 ```
 
 ```elixir
 FunPark.Ride.FastLane.ensure_fast_pass_lane(charles, haunted_mansion)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Either.Left{
+  left: %FunPark.Errors.ValidationError{errors: ["Charles is not old enough"]}
+}
+```
+
 ```elixir
 FunPark.Ride.FastLane.ensure_fast_pass_lane(dave, haunted_mansion)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Either.Right{
+  right: %FunPark.Patron{
+    id: 515,
+    name: "Dave",
+    age: 16,
+    height: 140,
+    ticket_tier: :basic,
+    fast_passes: [
+      %FunPark.FastPass{
+        id: 707,
+        ride: %FunPark.Ride{
+          id: 387,
+          name: "Haunted Mansion",
+          min_age: 14,
+          min_height: 120,
+          wait_time: 0,
+          online: true,
+          tags: []
+        },
+        time: ~U[2025-06-01 13:00:00Z]
+      }
+    ],
+    reward_points: 0,
+    likes: [],
+    dislikes: []
+  }
+}
+```
+
 ```elixir
 FunPark.Ride.FastLane.ensure_fast_pass_lane(elsie, haunted_mansion)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Either.Right{
+  right: %FunPark.Patron{
+    id: 771,
+    name: "Elsie",
+    age: 17,
+    height: 135,
+    ticket_tier: :vip,
+    fast_passes: [],
+    reward_points: 0,
+    likes: [],
+    dislikes: []
+  }
+}
 ```
 
 ### Ensure Groups of Patrons
@@ -303,6 +631,51 @@ FunPark.Ride.FastLane.ensure_fast_pass_lane_group(
 )
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Either.Right{
+  right: [
+    %FunPark.Patron{
+      id: 771,
+      name: "Elsie",
+      age: 17,
+      height: 135,
+      ticket_tier: :vip,
+      fast_passes: [],
+      reward_points: 0,
+      likes: [],
+      dislikes: []
+    },
+    %FunPark.Patron{
+      id: 515,
+      name: "Dave",
+      age: 16,
+      height: 140,
+      ticket_tier: :basic,
+      fast_passes: [
+        %FunPark.FastPass{
+          id: 707,
+          ride: %FunPark.Ride{
+            id: 387,
+            name: "Haunted Mansion",
+            min_age: 14,
+            min_height: 120,
+            wait_time: 0,
+            online: true,
+            tags: []
+          },
+          time: ~U[2025-06-01 13:00:00Z]
+        }
+      ],
+      reward_points: 0,
+      likes: [],
+      dislikes: []
+    }
+  ]
+}
+```
+
 But not with Charles:
 
 ```elixir
@@ -311,6 +684,14 @@ FunPark.Ride.FastLane.ensure_fast_pass_lane_group(
   patrons, 
   haunted_mansion
 )
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Either.Left{
+  left: %FunPark.Errors.ValidationError{errors: ["Charles is not old enough"]}
+}
 ```
 
 If we add patrons after Charles, it still fails the same way:
@@ -323,6 +704,14 @@ FunPark.Ride.FastLane.ensure_fast_pass_lane_group(
 )
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Either.Left{
+  left: %FunPark.Errors.ValidationError{errors: ["Charles is not old enough"]}
+}
+```
+
 Notice that if we swap Charles and Beth, then Beth's ineligibility is the one we'll see:
 
 ```elixir
@@ -331,6 +720,14 @@ FunPark.Ride.FastLane.ensure_fast_pass_lane_group(
   patrons, 
   haunted_mansion
 )
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Either.Left{
+  left: %FunPark.Errors.ValidationError{errors: ["Beth is not tall enough"]}
+}
 ```
 
 ## From Bind to Combine
@@ -398,6 +795,20 @@ haunted_mansion = FunPark.Ride.make(
 )
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Ride{
+  id: 1155,
+  name: "Haunted Mansion",
+  min_age: 14,
+  min_height: 120,
+  wait_time: 0,
+  online: true,
+  tags: []
+}
+```
+
 Next, let's reuse our ride eligibility logic:
 
 ```elixir
@@ -405,6 +816,12 @@ valid_height = FunPark.Utils.curry_r(
   &FunPark.Ride.FastLane.ensure_height/2
 )
 valid_age = FunPark.Utils.curry_r(&FunPark.Ride.FastLane.ensure_age/2)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+#Function<3.64560675/1 in FunPark.Utils.curry_r/3>
 ```
 
 But instead of chaining them one at a time, create a list of validators:
@@ -416,10 +833,25 @@ validators = [
 ]
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+[#Function<2.64560675/1 in FunPark.Utils.curry_r/3>,
+ #Function<2.64560675/1 in FunPark.Utils.curry_r/3>]
+```
+
 Here we traversed over our validators and applied them to Alice, to find she is not old enough:
 
 ```elixir
 FunPark.Monad.Either.traverse_a(validators, & &1.(alice))
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Either.Left{
+  left: %FunPark.Errors.ValidationError{errors: ["Alice is not old enough"]}
+}
 ```
 
 Let's apply them to Beth, who is too short:
@@ -428,16 +860,65 @@ Let's apply them to Beth, who is too short:
 FunPark.Monad.Either.traverse_a(validators, & &1.(beth))
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Either.Left{
+  left: %FunPark.Errors.ValidationError{errors: ["Beth is not tall enough"]}
+}
+```
+
 And Charles, who is both too short and too young:
 
 ```elixir
 FunPark.Monad.Either.traverse_a(validators, & &1.(charles))
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Either.Left{
+  left: %FunPark.Errors.ValidationError{
+    errors: ["Charles is not tall enough", "Charles is not old enough"]
+  }
+}
+```
+
 Let's check Dave, who is eligible:
 
 ```elixir
 FunPark.Monad.Either.traverse_a(validators, & &1.(dave))
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Either.Right{
+  right: [
+    %FunPark.Patron{
+      id: 1027,
+      name: "Dave",
+      age: 16,
+      height: 140,
+      ticket_tier: :basic,
+      fast_passes: [],
+      reward_points: 0,
+      likes: [],
+      dislikes: []
+    },
+    %FunPark.Patron{
+      id: 1027,
+      name: "Dave",
+      age: 16,
+      height: 140,
+      ticket_tier: :basic,
+      fast_passes: [],
+      reward_points: 0,
+      likes: [],
+      dislikes: []
+    }
+  ]
+}
 ```
 
 ````markdown
@@ -456,10 +937,38 @@ Here, Dave is eligible:
 FunPark.Monad.Either.validate(dave, validators)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Either.Right{
+  right: %FunPark.Patron{
+    id: 1027,
+    name: "Dave",
+    age: 16,
+    height: 140,
+    ticket_tier: :basic,
+    fast_passes: [],
+    reward_points: 0,
+    likes: [],
+    dislikes: []
+  }
+}
+```
+
 And again, Charles is not:
 
 ```elixir
 FunPark.Monad.Either.validate(charles, validators)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Either.Left{
+  left: %FunPark.Errors.ValidationError{
+    errors: ["Charles is not tall enough", "Charles is not old enough"]
+  }
+}
 ```
 
 ````markdown
@@ -506,10 +1015,28 @@ Alice is a VIP, so she doesn't need a fast pass—but she's still too young:
 FunPark.Ride.FastLane.validate_fast_pass_lane(alice, haunted_mansion)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Either.Left{
+  left: %FunPark.Errors.ValidationError{errors: ["Alice is not old enough"]}
+}
+```
+
 Beth is too short and lacks a fast pass:
 
 ```elixir
 FunPark.Ride.FastLane.validate_fast_pass_lane(beth, haunted_mansion)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Either.Left{
+  left: %FunPark.Errors.ValidationError{
+    errors: ["Beth is not tall enough", "Beth does not have a fast pass"]
+  }
+}
 ```
 
 Charles is neither tall enough nor old enough—and he also doesn't have a fast pass:
@@ -518,10 +1045,29 @@ Charles is neither tall enough nor old enough—and he also doesn't have a fast 
 FunPark.Ride.FastLane.validate_fast_pass_lane(charles, haunted_mansion)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Either.Left{
+  left: %FunPark.Errors.ValidationError{
+    errors: ["Charles is not tall enough", "Charles is not old enough",
+     "Charles does not have a fast pass"]
+  }
+}
+```
+
 Dave is tall enough and old enough—but doesn't have a fast pass:
 
 ```elixir
 FunPark.Ride.FastLane.validate_fast_pass_lane(dave, haunted_mansion)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Either.Left{
+  left: %FunPark.Errors.ValidationError{errors: ["Dave does not have a fast pass"]}
+}
 ```
 
 Let's give him one:
@@ -532,16 +1078,96 @@ fast_pass = FunPark.FastPass.make(haunted_mansion, datetime)
 dave = FunPark.Patron.add_fast_pass(dave, fast_pass)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Patron{
+  id: 1027,
+  name: "Dave",
+  age: 16,
+  height: 140,
+  ticket_tier: :basic,
+  fast_passes: [
+    %FunPark.FastPass{
+      id: 1603,
+      ride: %FunPark.Ride{
+        id: 1155,
+        name: "Haunted Mansion",
+        min_age: 14,
+        min_height: 120,
+        wait_time: 0,
+        online: true,
+        tags: []
+      },
+      time: ~U[2025-06-01 13:00:00Z]
+    }
+  ],
+  reward_points: 0,
+  likes: [],
+  dislikes: []
+}
+```
+
 Now Dave can enter the Haunted Mansion's fast lane:
 
 ```elixir
 FunPark.Ride.FastLane.validate_fast_pass_lane(dave, haunted_mansion)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Either.Right{
+  right: %FunPark.Patron{
+    id: 1027,
+    name: "Dave",
+    age: 16,
+    height: 140,
+    ticket_tier: :basic,
+    fast_passes: [
+      %FunPark.FastPass{
+        id: 1603,
+        ride: %FunPark.Ride{
+          id: 1155,
+          name: "Haunted Mansion",
+          min_age: 14,
+          min_height: 120,
+          wait_time: 0,
+          online: true,
+          tags: []
+        },
+        time: ~U[2025-06-01 13:00:00Z]
+      }
+    ],
+    reward_points: 0,
+    likes: [],
+    dislikes: []
+  }
+}
+```
+
 And finally, Elsie—who is eligible and a VIP—can enter the fast lane:
 
 ```elixir
 FunPark.Ride.FastLane.validate_fast_pass_lane(elsie, haunted_mansion)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Either.Right{
+  right: %FunPark.Patron{
+    id: 1091,
+    name: "Elsie",
+    age: 17,
+    height: 135,
+    ticket_tier: :vip,
+    fast_passes: [],
+    reward_points: 0,
+    likes: [],
+    dislikes: []
+  }
+}
 ```
 
 But if we take Haunted Mansion offline:
@@ -553,10 +1179,32 @@ haunted_mansion = FunPark.Ride.change(
 )
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Ride{
+  id: 1155,
+  name: "Haunted Mansion",
+  min_age: 14,
+  min_height: 120,
+  wait_time: 0,
+  online: false,
+  tags: []
+}
+```
+
 She can no longer enter the fast lane:
 
 ```elixir
 FunPark.Ride.FastLane.validate_fast_pass_lane(elsie, haunted_mansion)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Either.Left{
+  left: %FunPark.Errors.ValidationError{errors: ["Haunted Mansion is offline"]}
+}
 ```
 
 ````markdown
@@ -581,6 +1229,17 @@ FunPark.Ride.FastLane.validate_fast_pass_lane_group(
 )
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Either.Left{
+  left: %FunPark.Errors.ValidationError{
+    errors: ["Alice is not old enough", "Beth is not tall enough", "Beth does not have a fast pass",
+     "Charles is not tall enough", "Charles is not old enough", "Charles does not have a fast pass"]
+  }
+}
+```
+
 No—but it looks like Dave and Elsie can:
 
 ```elixir
@@ -589,6 +1248,51 @@ FunPark.Ride.FastLane.validate_fast_pass_lane_group(
   patrons, 
   haunted_mansion
 )
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Either.Right{
+  right: [
+    %FunPark.Patron{
+      id: 1027,
+      name: "Dave",
+      age: 16,
+      height: 140,
+      ticket_tier: :basic,
+      fast_passes: [
+        %FunPark.FastPass{
+          id: 1603,
+          ride: %FunPark.Ride{
+            id: 1155,
+            name: "Haunted Mansion",
+            min_age: 14,
+            min_height: 120,
+            wait_time: 0,
+            online: true,
+            tags: []
+          },
+          time: ~U[2025-06-01 13:00:00Z]
+        }
+      ],
+      reward_points: 0,
+      likes: [],
+      dislikes: []
+    },
+    %FunPark.Patron{
+      id: 1091,
+      name: "Elsie",
+      age: 17,
+      height: 135,
+      ticket_tier: :vip,
+      fast_passes: [],
+      reward_points: 0,
+      likes: [],
+      dislikes: []
+    }
+  ]
+}
 ```
 
 ## Make Errors Explicit
@@ -755,11 +1459,31 @@ Let's start by creating our table:
 FunPark.Ride.Repo.create_table()
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Either.Right{right: :rides}
+```
+
 Next, we generate a couple of rides:
 
 ```elixir
 banana = FunPark.Ride.make("Banana Slip")
 apple = FunPark.Ride.make("Apple Cart")
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Ride{
+  id: 1731,
+  name: "Apple Cart",
+  min_age: 0,
+  min_height: 0,
+  wait_time: 0,
+  online: true,
+  tags: []
+}
 ```
 
 With the repository we can save valid rides to our store:
@@ -768,8 +1492,40 @@ With the repository we can save valid rides to our store:
 FunPark.Ride.Repo.save(banana)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Either.Right{
+  right: %FunPark.Ride{
+    id: 1667,
+    name: "Banana Slip",
+    min_age: 0,
+    min_height: 0,
+    wait_time: 0,
+    online: true,
+    tags: []
+  }
+}
+```
+
 ```elixir
 FunPark.Ride.Repo.save(apple)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Either.Right{
+  right: %FunPark.Ride{
+    id: 1731,
+    name: "Apple Cart",
+    min_age: 0,
+    min_height: 0,
+    wait_time: 0,
+    online: true,
+    tags: []
+  }
+}
 ```
 
 If we create an invalid ride:
@@ -778,10 +1534,35 @@ If we create an invalid ride:
 bad_apple = FunPark.Ride.change(apple, %{wait_time: -1, min_age: -1})
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Ride{
+  id: 1731,
+  name: "Apple Cart",
+  min_age: -1,
+  min_height: 0,
+  wait_time: -1,
+  online: true,
+  tags: []
+}
+```
+
 We get Left, informing that it did not save because of a validation error:
 
 ```elixir
 FunPark.Ride.Repo.save(bad_apple)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Either.Left{
+  left: %FunPark.Errors.ValidationError{
+    errors: ["Apple Cart: min age must be non negative",
+     "Apple Cart: wait time must be non negative"]
+  }
+}
 ```
 
 We can retrieve our saved rides:
@@ -790,8 +1571,40 @@ We can retrieve our saved rides:
 FunPark.Ride.Repo.get(banana.id)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Either.Right{
+  right: %FunPark.Ride{
+    id: 1667,
+    name: "Banana Slip",
+    min_age: 0,
+    min_height: 0,
+    wait_time: 0,
+    online: true,
+    tags: []
+  }
+}
+```
+
 ```elixir
 FunPark.Ride.Repo.get(apple.id)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Either.Right{
+  right: %FunPark.Ride{
+    id: 1731,
+    name: "Apple Cart",
+    min_age: 0,
+    min_height: 0,
+    wait_time: 0,
+    online: true,
+    tags: []
+  }
+}
 ```
 
 Or get a list of all rides in their domain order:
@@ -800,10 +1613,41 @@ Or get a list of all rides in their domain order:
 FunPark.Ride.Repo.list()
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+[
+  %FunPark.Ride{
+    id: 1731,
+    name: "Apple Cart",
+    min_age: 0,
+    min_height: 0,
+    wait_time: 0,
+    online: true,
+    tags: []
+  },
+  %FunPark.Ride{
+    id: 1667,
+    name: "Banana Slip",
+    min_age: 0,
+    min_height: 0,
+    wait_time: 0,
+    online: true,
+    tags: []
+  }
+]
+```
+
 When we delete the Apple Cart ride:
 
 ```elixir
 FunPark.Ride.Repo.delete(apple)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+1731
 ```
 
 It becomes :not_found:
@@ -812,14 +1656,32 @@ It becomes :not_found:
 FunPark.Ride.Repo.get(apple.id)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Either.Left{left: :not_found}
+```
+
 Because our delete operation is idempotent, we can delete it multiple times:
 
 ```elixir
 FunPark.Ride.Repo.delete(apple)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+1731
+```
+
 ```elixir
 FunPark.Ride.Repo.delete(apple)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+1731
 ```
 
 If another process deletes the entire table:
@@ -828,10 +1690,22 @@ If another process deletes the entire table:
 FunPark.Store.drop_table(:rides)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Either.Right{right: :rides}
+```
+
 The Ride context can still delete:
 
 ```elixir
 FunPark.Ride.Repo.delete(apple)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+:ok
 ```
 
 And the caller doesn't care that the table has been dropped—only that the ride isn't available:
@@ -840,8 +1714,20 @@ And the caller doesn't care that the table has been dropped—only that the ride
 FunPark.Ride.Repo.get(apple.id)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Either.Left{left: :not_found}
+```
+
 Also, it doesn't care why there are no rides—just that the outcome is an empty list:
 
 ```elixir
 FunPark.Ride.Repo.list()
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+[]
 ```
