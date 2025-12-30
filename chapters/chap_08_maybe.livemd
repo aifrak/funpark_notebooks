@@ -1,3 +1,5 @@
+<!-- livebook:{"persist_outputs":true} -->
+
 # Manage Absence with Maybe
 
 ```elixir
@@ -68,8 +70,20 @@ Let's start with one value from each branch:
 just_a = FunPark.Monad.Maybe.just("A")
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Maybe.Just{value: "A"}
+```
+
 ```elixir
 nothing = FunPark.Monad.Maybe.nothing()
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Maybe.Nothing{}
 ```
 
 We can determine which branch we're in using a refinement:
@@ -78,8 +92,20 @@ We can determine which branch we're in using a refinement:
 FunPark.Monad.Maybe.just?(just_a)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+true
+```
+
 ```elixir
 FunPark.Monad.Maybe.nothing?(just_a)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+false
 ```
 
 ## Fold Branches
@@ -111,8 +137,20 @@ Let's return to our `Ride` expert's sensor problem:
 good = FunPark.Monad.Maybe.just(10)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Maybe.Just{value: 10}
+```
+
 ```elixir
 bad = FunPark.Monad.Maybe.nothing()
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Maybe.Nothing{}
 ```
 
 Then fold to extract the result:
@@ -121,8 +159,20 @@ Then fold to extract the result:
 FunPark.Foldable.fold_l(good, &"Sensor: #{&1}", fn -> "Broken" end)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+"Sensor: 10"
+```
+
 ```elixir
 FunPark.Foldable.fold_l(bad, &"Sensor: #{&1}", fn -> "Broken" end)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+"Broken"
 ```
 
 ### Default Value
@@ -144,10 +194,22 @@ sensor_c = FunPark.Monad.Maybe.pure(30)
 sensor_d = FunPark.Monad.Maybe.pure(5)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Maybe.Just{value: 5}
+```
+
 Now we can use the higher-level `get_or_else/2`:
 
 ```elixir
 get_or_else_5 = &FunPark.Monad.Maybe.get_or_else(&1, 5)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+#Function<42.81571850/1 in :erl_eval.expr/6>
 ```
 
 Here, `get_or_else_5/1` folds `Maybe` a number into a number:
@@ -157,6 +219,12 @@ get_or_else_5.(sensor_a)
 |> FunPark.Math.sum(get_or_else_5.(sensor_b))
 |> FunPark.Math.sum(get_or_else_5.(sensor_c))
 |> FunPark.Math.sum(get_or_else_5.(sensor_d))
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+60
 ```
 
 ## Lift Other Contexts
@@ -176,8 +244,20 @@ Let's say we're dealing with a person, whose name might be missing (`nil`):
 person_1 = FunPark.Identity.pure("Dave")
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Identity{value: "Dave"}
+```
+
 ```elixir
 person_2 = FunPark.Identity.pure(nil)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Identity{value: nil}
 ```
 
 Our `lift_identity/1` logic converts this to a `Maybe`:
@@ -186,8 +266,20 @@ Our `lift_identity/1` logic converts this to a `Maybe`:
 maybe_person_1 = FunPark.Monad.Maybe.lift_identity(person_1)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Maybe.Just{value: "Dave"}
+```
+
 ```elixir
 maybe_person_2 = FunPark.Monad.Maybe.lift_identity(person_2)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Maybe.Nothing{}
 ```
 
 And we can fold that `Maybe` back into a string:
@@ -196,8 +288,20 @@ And we can fold that `Maybe` back into a string:
 FunPark.Monad.Maybe.get_or_else(maybe_person_1, "Missing")
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+"Dave"
+```
+
 ```elixir
 FunPark.Monad.Maybe.get_or_else(maybe_person_2, "Missing")
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+"Missing"
 ```
 
 ### Predicate
@@ -216,10 +320,30 @@ Let's start by generating the Tea Cup ride with a wait time of 100 minutes:
 tea_cup = FunPark.Ride.make("Tea Cup", online: true, wait_time: 100)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Ride{
+  id: 4738,
+  name: "Tea Cup",
+  min_age: 0,
+  min_height: 0,
+  wait_time: 100,
+  online: true,
+  tags: []
+}
+```
+
 Earlier, our `Ride` expert introduced `suggested?/1`, a predicate that checks whether a ride is online and has a wait time under thirty minutes. With a 100-minute wait, the Tea Cup is not suggested:
 
 ```elixir
 FunPark.Ride.suggested?(tea_cup)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+false
 ```
 
 Because the Tea Cup's wait time is too long, it becomes *nothing* in the new context:
@@ -228,16 +352,52 @@ Because the Tea Cup's wait time is too long, it becomes *nothing* in the new con
 FunPark.Monad.Maybe.lift_predicate(tea_cup, &FunPark.Ride.suggested?/1)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Maybe.Nothing{}
+```
+
 Later, the wait time drops:
 
 ```elixir
 tea_cup = FunPark.Ride.update_wait_time(tea_cup, 10)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Ride{
+  id: 4738,
+  name: "Tea Cup",
+  min_age: 0,
+  min_height: 0,
+  wait_time: 10,
+  online: true,
+  tags: []
+}
+```
+
 Now, the Tea Cup is *just* a `SuggestedRide`:
 
 ```elixir
 FunPark.Monad.Maybe.lift_predicate(tea_cup, &FunPark.Ride.suggested?/1)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Maybe.Just{
+  value: %FunPark.Ride{
+    id: 4738,
+    name: "Tea Cup",
+    min_age: 0,
+    min_height: 0,
+    wait_time: 10,
+    online: true,
+    tags: []
+  }
+}
 ```
 
 ## Bridge Elixir Patterns
@@ -274,10 +434,32 @@ fast_pass = FunPark.FastPass.make(haunted_mansion, datetime)
 alice = FunPark.Patron.make("Alice", 13, 150)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Patron{
+  id: 5058,
+  name: "Alice",
+  age: 13,
+  height: 150,
+  ticket_tier: :basic,
+  fast_passes: [],
+  reward_points: 0,
+  likes: [],
+  dislikes: []
+}
+```
+
 Alice does not have a `ValidFastPass`, so the result is *nothing*:
 
 ```elixir
 FunPark.Ride.get_fast_pass(alice, haunted_mansion)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Maybe.Nothing{}
 ```
 
 If she collects a fast-pass for the Haunted Mansion:
@@ -286,10 +468,60 @@ If she collects a fast-pass for the Haunted Mansion:
 alice = FunPark.Patron.add_fast_pass(alice, fast_pass)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Patron{
+  id: 5058,
+  name: "Alice",
+  age: 13,
+  height: 150,
+  ticket_tier: :basic,
+  fast_passes: [
+    %FunPark.FastPass{
+      id: 4994,
+      ride: %FunPark.Ride{
+        id: 4930,
+        name: "Haunted Mansion",
+        min_age: 14,
+        min_height: 0,
+        wait_time: 0,
+        online: true,
+        tags: []
+      },
+      time: ~U[2025-06-01 13:00:00Z]
+    }
+  ],
+  reward_points: 0,
+  likes: [],
+  dislikes: []
+}
+```
+
 She now has *just* a `ValidFastPass`:
 
 ```elixir
 FunPark.Ride.get_fast_pass(alice, haunted_mansion)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Maybe.Just{
+  value: %FunPark.FastPass{
+    id: 4994,
+    ride: %FunPark.Ride{
+      id: 4930,
+      name: "Haunted Mansion",
+      min_age: 14,
+      min_height: 0,
+      wait_time: 0,
+      online: true,
+      tags: []
+    },
+    time: ~U[2025-06-01 13:00:00Z]
+  }
+}
 ```
 
 ## Define Equality
@@ -330,10 +562,32 @@ alice = FunPark.Patron.make("Alice", 15, 150)
 alice_copy = FunPark.Patron.change(alice, %{ticket_tier: :vip})
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Patron{
+  id: 5122,
+  name: "Alice",
+  age: 15,
+  height: 150,
+  ticket_tier: :vip,
+  fast_passes: [],
+  reward_points: 0,
+  likes: [],
+  dislikes: []
+}
+```
+
 Our `Eq` correctly recognizes that both records are still Alice:
 
 ```elixir
 FunPark.Eq.Utils.eq?(alice, alice_copy)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+true
 ```
 
 And like the `Identity` monad, lifting both versions into the `MaybePatron` preserves the equality:
@@ -343,6 +597,12 @@ alice_maybe = FunPark.Monad.Maybe.pure(alice)
 alice_copy_maybe = FunPark.Monad.Maybe.pure(alice_copy)
 
 FunPark.Eq.Utils.eq?(alice_maybe, alice_copy_maybe)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+true
 ```
 
 However, refining the context to `MaybeVipPatron` draws a meaningful distinction:
@@ -356,10 +616,34 @@ alice_copy_maybe_vip = FunPark.Monad.Maybe.lift_predicate(
 )
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Maybe.Just{
+  value: %FunPark.Patron{
+    id: 5122,
+    name: "Alice",
+    age: 15,
+    height: 150,
+    ticket_tier: :vip,
+    fast_passes: [],
+    reward_points: 0,
+    likes: [],
+    dislikes: []
+  }
+}
+```
+
 Within the context of `MaybeVipPatron`, these two records are not equal:
 
 ```elixir
 FunPark.Eq.Utils.eq?(alice_maybe_vip, alice_copy_maybe_vip)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+false
 ```
 
 ## Establish Order
@@ -412,10 +696,32 @@ alice = FunPark.Patron.make("Alice", 15, 150, ticket_tier: :vip)
 beth = FunPark.Patron.make("Beth", 15, 150)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Patron{
+  id: 5250,
+  name: "Beth",
+  age: 15,
+  height: 150,
+  ticket_tier: :basic,
+  fast_passes: [],
+  reward_points: 0,
+  likes: [],
+  dislikes: []
+}
+```
+
 The default order for a `Patron` is alphabetical by name, so Alice is less than Beth:
 
 ```elixir
 FunPark.Ord.Utils.compare(alice, beth)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+:lt
 ```
 
 And like `Eq`, lifting the patrons into `MaybePatron` preserves that order:
@@ -425,6 +731,12 @@ alice_m = FunPark.Monad.Maybe.pure(alice)
 beth_m = FunPark.Monad.Maybe.pure(beth)
 
 FunPark.Ord.Utils.compare(alice_m, beth_m)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+:lt
 ```
 
 Also like `Eq`, refining the context to `MaybeVipPatron` changes the behavior:
@@ -437,6 +749,12 @@ beth_vip =
 FunPark.Monad.Maybe.lift_predicate(beth, &FunPark.Patron.vip?/1)
 
 FunPark.Ord.Utils.compare(alice_vip, beth_vip)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+:gt
 ```
 
 ## Lift Custom Comparisons
@@ -500,11 +818,33 @@ alice = FunPark.Patron.make("Alice", 15, 150, ticket_tier: :vip)
 beth = FunPark.Patron.make("Beth", 15, 150)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Patron{
+  id: 5378,
+  name: "Beth",
+  age: 15,
+  height: 150,
+  ticket_tier: :basic,
+  fast_passes: [],
+  reward_points: 0,
+  likes: [],
+  dislikes: []
+}
+```
+
 We'll compare patrons using `ord_by_ticket_tier/0`, where Alice, as a VIP, ranks higher than Beth:
 
 ```elixir
 ord_by_ticket = FunPark.Patron.ord_by_ticket_tier()
 FunPark.Ord.Utils.compare(alice, beth, ord_by_ticket)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+:gt
 ```
 
 Now, let's lift both patrons into the `Maybe` context:
@@ -514,16 +854,51 @@ alice_maybe = FunPark.Monad.Maybe.pure(alice)
 beth_maybe = FunPark.Monad.Maybe.pure(beth)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Maybe.Just{
+  value: %FunPark.Patron{
+    id: 5378,
+    name: "Beth",
+    age: 15,
+    height: 150,
+    ticket_tier: :basic,
+    fast_passes: [],
+    reward_points: 0,
+    likes: [],
+    dislikes: []
+  }
+}
+```
+
 To use the same custom logic, we also need to lift the comparator:
 
 ```elixir
 lifted_ord = FunPark.Monad.Maybe.lift_ord(ord_by_ticket)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%{
+  ge?: #Function<10.52531299/2 in FunPark.Monad.Maybe.lift_ord/1>,
+  gt?: #Function<9.52531299/2 in FunPark.Monad.Maybe.lift_ord/1>,
+  le?: #Function<8.52531299/2 in FunPark.Monad.Maybe.lift_ord/1>,
+  lt?: #Function<7.52531299/2 in FunPark.Monad.Maybe.lift_ord/1>
+}
+```
+
 Alice, with her VIP ticket is greater:
 
 ```elixir
 FunPark.Ord.Utils.compare(alice_maybe, beth_maybe, lifted_ord)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+:gt
 ```
 
 ## Model Absence in a Monoid
@@ -579,24 +954,100 @@ charles = FunPark.Patron.make(
 )
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Patron{
+  id: 5570,
+  name: "Charles",
+  age: 14,
+  height: 135,
+  ticket_tier: :premium,
+  fast_passes: [],
+  reward_points: 150,
+  likes: [],
+  dislikes: []
+}
+```
+
 Using `highest_priority_maybe/1`, we determine who should go next:
 
 ```elixir
 FunPark.Patron.highest_priority_maybe([alice, beth, charles])
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Maybe.Just{
+  value: %FunPark.Patron{
+    id: 5506,
+    name: "Beth",
+    age: 16,
+    height: 130,
+    ticket_tier: :vip,
+    fast_passes: [],
+    reward_points: 20,
+    likes: [],
+    dislikes: []
+  }
+}
+```
+
 ```elixir
 FunPark.Patron.highest_priority_maybe([alice, charles])
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Maybe.Just{
+  value: %FunPark.Patron{
+    id: 5570,
+    name: "Charles",
+    age: 14,
+    height: 135,
+    ticket_tier: :premium,
+    fast_passes: [],
+    reward_points: 150,
+    likes: [],
+    dislikes: []
+  }
+}
 ```
 
 ```elixir
 FunPark.Patron.highest_priority_maybe([alice])
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Maybe.Just{
+  value: %FunPark.Patron{
+    id: 5442,
+    name: "Alice",
+    age: 15,
+    height: 120,
+    ticket_tier: :premium,
+    fast_passes: [],
+    reward_points: 50,
+    likes: [],
+    dislikes: []
+  }
+}
+```
+
 And when the queue is empty, the result is *nothing*:
 
 ```elixir
 FunPark.Patron.highest_priority_maybe([])
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Maybe.Nothing{}
 ```
 
 ## Implement the Monadic Behaviors
@@ -655,16 +1106,52 @@ tea_cup = FunPark.Ride.make("Tea Cup", online: false)
 FunPark.Ride.update_wait_time_maybe(tea_cup, 20)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Maybe.Nothing{}
+```
+
 Later, when the ride comes back online:
 
 ```elixir
 tea_cup = FunPark.Ride.change(tea_cup, %{online: true})
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Ride{
+  id: 5634,
+  name: "Tea Cup",
+  min_age: 0,
+  min_height: 0,
+  wait_time: 0,
+  online: true,
+  tags: []
+}
+```
+
 Now, Tea Cup is *just* an `OnlineRide`, so the transformation is applied:
 
 ```elixir
 FunPark.Ride.update_wait_time_maybe(tea_cup, 20)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Maybe.Just{
+  value: %FunPark.Ride{
+    id: 5634,
+    name: "Tea Cup",
+    min_age: 0,
+    min_height: 0,
+    wait_time: 20,
+    online: true,
+    tags: []
+  }
+}
 ```
 
 ### Monad Bind
@@ -709,10 +1196,32 @@ alice = FunPark.Patron.make("Alice", 15, 150)
 beth = FunPark.Patron.make("Beth", 13, 130)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Patron{
+  id: 6018,
+  name: "Beth",
+  age: 13,
+  height: 130,
+  ticket_tier: :basic,
+  fast_passes: [],
+  reward_points: 0,
+  likes: [],
+  dislikes: []
+}
+```
+
 Alice does not qualify for the fast lane:
 
 ```elixir
 FunPark.Ride.fast_pass_lane(alice, haunted_mansion)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Maybe.Nothing{}
 ```
 
 Unless we give her a `FastPass`:
@@ -723,12 +1232,50 @@ alice = FunPark.Patron.add_fast_pass(alice, fast_pass)
 FunPark.Ride.fast_pass_lane(alice, haunted_mansion)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Maybe.Just{
+  value: %FunPark.Patron{
+    id: 5954,
+    name: "Alice",
+    age: 15,
+    height: 150,
+    ticket_tier: :basic,
+    fast_passes: [
+      %FunPark.FastPass{
+        id: 5890,
+        ride: %FunPark.Ride{
+          id: 5826,
+          name: "Haunted Mansion",
+          min_age: 14,
+          min_height: 0,
+          wait_time: 0,
+          online: true,
+          tags: []
+        },
+        time: ~U[2025-06-01 13:00:00Z]
+      }
+    ],
+    reward_points: 0,
+    likes: [],
+    dislikes: []
+  }
+}
+```
+
 Beth is too young for the Haunted Mansion, so even with a `FastPass`, she does not qualify:
 
 ```elixir
 beth = FunPark.Patron.add_fast_pass(beth, fast_pass)
 
 FunPark.Ride.fast_pass_lane(beth, haunted_mansion)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Maybe.Nothing{}
 ```
 
 ### Recovery
@@ -767,10 +1314,32 @@ Let's generate Charles:
 charles = FunPark.Patron.make("Charles", 15, 145)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Patron{
+  id: 6082,
+  name: "Charles",
+  age: 15,
+  height: 145,
+  ticket_tier: :basic,
+  fast_passes: [],
+  reward_points: 0,
+  likes: [],
+  dislikes: []
+}
+```
+
 Although Charles is eligible for the Haunted Mansion, he has neither a FastPass nor a VIP:
 
 ```elixir
 FunPark.Ride.fast_pass_lane(charles, haunted_mansion)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Maybe.Nothing{}
 ```
 
 Later, he upgrades to VIP:
@@ -779,10 +1348,44 @@ Later, he upgrades to VIP:
 charles = FunPark.Patron.change(charles, %{ticket_tier: :vip})
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Patron{
+  id: 6082,
+  name: "Charles",
+  age: 15,
+  height: 145,
+  ticket_tier: :vip,
+  fast_passes: [],
+  reward_points: 0,
+  likes: [],
+  dislikes: []
+}
+```
+
 And now qualifies:
 
 ```elixir
 FunPark.Ride.fast_pass_lane(charles, haunted_mansion)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Maybe.Just{
+  value: %FunPark.Patron{
+    id: 6082,
+    name: "Charles",
+    age: 15,
+    height: 145,
+    ticket_tier: :vip,
+    fast_passes: [],
+    reward_points: 0,
+    likes: [],
+    dislikes: []
+  }
+}
 ```
 
 ## Refine Lists
@@ -824,6 +1427,22 @@ beth = FunPark.Patron.make("Beth", 13, 135)
 charles = FunPark.Patron.make("Charles", 15, 145)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Patron{
+  id: 6530,
+  name: "Charles",
+  age: 15,
+  height: 145,
+  ticket_tier: :basic,
+  fast_passes: [],
+  reward_points: 0,
+  likes: [],
+  dislikes: []
+}
+```
+
 Next, we'll give Alice and Beth fast passes, and upgrade Charles to VIP:
 
 ```elixir
@@ -832,11 +1451,70 @@ beth = FunPark.Patron.add_fast_pass(beth, fast_pass)
 charles = FunPark.Patron.change(charles, %{ticket_tier: :vip})
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Patron{
+  id: 6530,
+  name: "Charles",
+  age: 15,
+  height: 145,
+  ticket_tier: :vip,
+  fast_passes: [],
+  reward_points: 0,
+  likes: [],
+  dislikes: []
+}
+```
+
 Now, we can use `only_fast_pass_lane/2` to refine our list:
 
 ```elixir
 patrons = [alice, beth, charles]
 FunPark.Ride.only_fast_pass_lane_concat(patrons, haunted_mansion)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+[
+  %FunPark.Patron{
+    id: 6402,
+    name: "Alice",
+    age: 15,
+    height: 150,
+    ticket_tier: :basic,
+    fast_passes: [
+      %FunPark.FastPass{
+        id: 6338,
+        ride: %FunPark.Ride{
+          id: 6274,
+          name: "Haunted Mansion",
+          min_age: 14,
+          min_height: 0,
+          wait_time: 0,
+          online: true,
+          tags: []
+        },
+        time: ~U[2025-06-01 13:00:00Z]
+      }
+    ],
+    reward_points: 0,
+    likes: [],
+    dislikes: []
+  },
+  %FunPark.Patron{
+    id: 6530,
+    name: "Charles",
+    age: 15,
+    height: 145,
+    ticket_tier: :vip,
+    fast_passes: [],
+    reward_points: 0,
+    likes: [],
+    dislikes: []
+  }
+]
 ```
 
 ### Concat Map
@@ -870,6 +1548,49 @@ Let's return to our patrons and ride. The `only_fast_pass_lane/2` function still
 ```elixir
 patrons = [alice, beth, charles]
 FunPark.Ride.only_fast_pass_lane(patrons, haunted_mansion)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+[
+  %FunPark.Patron{
+    id: 6402,
+    name: "Alice",
+    age: 15,
+    height: 150,
+    ticket_tier: :basic,
+    fast_passes: [
+      %FunPark.FastPass{
+        id: 6338,
+        ride: %FunPark.Ride{
+          id: 6274,
+          name: "Haunted Mansion",
+          min_age: 14,
+          min_height: 0,
+          wait_time: 0,
+          online: true,
+          tags: []
+        },
+        time: ~U[2025-06-01 13:00:00Z]
+      }
+    ],
+    reward_points: 0,
+    likes: [],
+    dislikes: []
+  },
+  %FunPark.Patron{
+    id: 6530,
+    name: "Charles",
+    age: 15,
+    height: 145,
+    ticket_tier: :vip,
+    fast_passes: [],
+    reward_points: 0,
+    likes: [],
+    dislikes: []
+  }
+]
 ```
 
 ### Sequence
@@ -907,10 +1628,61 @@ patrons = [alice, beth, charles]
 FunPark.Ride.group_fast_pass_lane(patrons, haunted_mansion)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Maybe.Nothing{}
+```
+
 However, if Beth steps aside, as a group, Alice and Charles can enter the fast lane:
 
 ```elixir
 FunPark.Ride.group_fast_pass_lane([alice, charles], haunted_mansion)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Maybe.Just{
+  value: [
+    %FunPark.Patron{
+      id: 6402,
+      name: "Alice",
+      age: 15,
+      height: 150,
+      ticket_tier: :basic,
+      fast_passes: [
+        %FunPark.FastPass{
+          id: 6338,
+          ride: %FunPark.Ride{
+            id: 6274,
+            name: "Haunted Mansion",
+            min_age: 14,
+            min_height: 0,
+            wait_time: 0,
+            online: true,
+            tags: []
+          },
+          time: ~U[2025-06-01 13:00:00Z]
+        }
+      ],
+      reward_points: 0,
+      likes: [],
+      dislikes: []
+    },
+    %FunPark.Patron{
+      id: 6530,
+      name: "Charles",
+      age: 15,
+      height: 145,
+      ticket_tier: :vip,
+      fast_passes: [],
+      reward_points: 0,
+      likes: [],
+      dislikes: []
+    }
+  ]
+}
 ```
 
 ### Traverse
@@ -949,8 +1721,82 @@ Returning to our patrons and ride, we get the same results—Beth is too young f
 patrons = [alice, beth, charles]
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+[
+  %FunPark.Patron{
+    id: 6402,
+    name: "Alice",
+    age: 15,
+    height: 150,
+    ticket_tier: :basic,
+    fast_passes: [
+      %FunPark.FastPass{
+        id: 6338,
+        ride: %FunPark.Ride{
+          id: 6274,
+          name: "Haunted Mansion",
+          min_age: 14,
+          min_height: 0,
+          wait_time: 0,
+          online: true,
+          tags: []
+        },
+        time: ~U[2025-06-01 13:00:00Z]
+      }
+    ],
+    reward_points: 0,
+    likes: [],
+    dislikes: []
+  },
+  %FunPark.Patron{
+    id: 6466,
+    name: "Beth",
+    age: 13,
+    height: 135,
+    ticket_tier: :basic,
+    fast_passes: [
+      %FunPark.FastPass{
+        id: 6338,
+        ride: %FunPark.Ride{
+          id: 6274,
+          name: "Haunted Mansion",
+          min_age: 14,
+          min_height: 0,
+          wait_time: 0,
+          online: true,
+          tags: []
+        },
+        time: ~U[2025-06-01 13:00:00Z]
+      }
+    ],
+    reward_points: 0,
+    likes: [],
+    dislikes: []
+  },
+  %FunPark.Patron{
+    id: 6530,
+    name: "Charles",
+    age: 15,
+    height: 145,
+    ticket_tier: :vip,
+    fast_passes: [],
+    reward_points: 0,
+    likes: [],
+    dislikes: []
+  }
+]
+```
+
 ```elixir
 FunPark.Ride.group_fast_pass_lane(patrons, haunted_mansion)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Maybe.Nothing{}
 ```
 
 ## Filter Within Composition
@@ -1016,10 +1862,40 @@ Let's start by generating a ride:
 tea_cup = FunPark.Ride.make("Tea Cup")
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Ride{
+  id: 6594,
+  name: "Tea Cup",
+  min_age: 0,
+  min_height: 0,
+  wait_time: 0,
+  online: true,
+  tags: []
+}
+```
+
 Updating with a positive number and we get *just* the ride:
 
 ```elixir
 FunPark.Ride.update_wait_time_maybe(tea_cup, 10)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Maybe.Just{
+  value: %FunPark.Ride{
+    id: 6594,
+    name: "Tea Cup",
+    min_age: 0,
+    min_height: 0,
+    wait_time: 10,
+    online: true,
+    tags: []
+  }
+}
 ```
 
 But if we provide a negative number, the guard short-circuits:
@@ -1028,12 +1904,24 @@ But if we provide a negative number, the guard short-circuits:
 FunPark.Ride.update_wait_time_maybe(tea_cup, -10)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Maybe.Nothing{}
+```
+
 The pipeline continues to respect the `OnlineRide` context. If we update the Tea Cup to be offline:
 
 ```elixir
 tea_cup = FunPark.Ride.change(tea_cup, %{online: false})
 
 FunPark.Ride.update_wait_time_maybe(tea_cup, 10)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Maybe.Nothing{}
 ```
 
 ### Filter
@@ -1050,3 +1938,47 @@ def add_fast_pass_maybe(%__MODULE__{} = patron, %FastPass{} = fast_pass) do
 end
 ```
 ````
+
+<!-- livebook:{"break_markdown":true} -->
+
+### FilterMap
+
+#### With `bind/2`
+
+If our `Ride` expert describes `check_ride_eligibility/2` and `check_vip_or_pass/1` as a sequence of dependent steps—where each step must succeed before the next—then we use `bind/2` to emphasize that chain of dependency:
+
+````markdown
+```elixir
+def fast_pass_lane(%Patron{} = patron, %__MODULE__{} = ride) do
+  check_vip_or_pass = curry_r(&check_vip_or_fast_pass/2)
+
+  patron
+  |> check_ride_eligibility(ride)
+  |> bind(check_vip_or_pass.(ride))
+end
+```
+````
+
+But if the logic is framed as “first check this, then continue if it passes,” we use `filter_map/2`, highlighting the conditional gating rather than dependency:
+
+```
+
+#### With `filter_map/2`
+
+```
+
+<!-- livebook:{"force_markdown":true} -->
+
+```elixir
+def fast_pass_lane(%Patron{} = patron, %__MODULE__{} = ride) do
+  check_vip_or_pass = curry_r(&check_vip_or_fast_pass/2).(ride)
+
+  patron
+  |> check_ride_eligibility(ride)
+  |> filter_map(check_vip_or_pass)
+end
+```
+
+```
+
+```
