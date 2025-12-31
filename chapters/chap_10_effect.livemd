@@ -1,3 +1,5 @@
+<!-- livebook:{"persist_outputs":true} -->
+
 # Coordinate Tasks with Effect
 
 ```elixir
@@ -56,10 +58,28 @@ Let's start with a basic Effect, wrapping the number 40:
 effect = FunPark.Monad.Effect.pure(40)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Effect.Right{effect: #Function<2.126265695/1 in FunPark.Monad.Effect.Right.pure/1>}
+```
+
 If we run it:
 
 ```elixir
 FunPark.Monad.Effect.run(effect)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+Task completed in 3ms
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Either.Right{right: 40}
 ```
 
 An Elixir Task can fail. For example, we can create an Effect that contains a bomb to crash the underlying process:
@@ -69,10 +89,30 @@ bomb = fn -> raise "boom" end
 bomb_effect = FunPark.Monad.Effect.lift_func(bomb)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Effect.Right{effect: #Function<4.9888490/1 in FunPark.Monad.Effect.lift_func/1>}
+```
+
 If we run it:
 
 ```elixir
 FunPark.Monad.Effect.run(bomb_effect)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+Task completed in 0ms
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Either.Left{
+  left: %FunPark.Errors.EffectError{stage: :lift_func, reason: %RuntimeError{message: "boom"}}
+}
 ```
 
 An Effect can also fail by timing out. Here is an Effect that takes 6 seconds, one more than our Task default:
@@ -82,10 +122,28 @@ long_delay = fn -> Process.sleep(6000) end
 long_delay_effect = FunPark.Monad.Effect.lift_func(long_delay)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Effect.Right{effect: #Function<4.9888490/1 in FunPark.Monad.Effect.lift_func/1>}
+```
+
 And if we run this long task:
 
 ```elixir
 FunPark.Monad.Effect.run(long_delay_effect)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+Task completed in 5001ms
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Either.Left{left: %FunPark.Errors.EffectError{stage: :run, reason: :timeout}}
 ```
 
 ## Deferred Transformation
@@ -129,10 +187,22 @@ Let's start with the Effect that, when run, returns the value 5:
 five_effect = FunPark.Monad.Effect.pure(5)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Effect.Right{effect: #Function<2.126265695/1 in FunPark.Monad.Effect.Right.pure/1>}
+```
+
 And a simple function that adds one to the value submitted:
 
 ```elixir
 increment = fn v -> v + 1 end
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+#Function<42.81571850/1 in :erl_eval.expr/6>
 ```
 
 We can compose a new Effect by mapping increment/1 to five_effect:
@@ -141,10 +211,31 @@ We can compose a new Effect by mapping increment/1 to five_effect:
 six_effect = five_effect |> FunPark.Monad.map(increment)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Effect.Right{
+  effect: #Function<2.796317/1 in FunPark.Monad.FunPark.Monad.Effect.Right.map/2>
+}
+```
+
 Now, when we run it in a protected boundary:
 
 ```elixir
 FunPark.Monad.Effect.run(six_effect)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+Task completed in 0ms
+Task completed in 0ms
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Either.Right{right: 6}
 ```
 
 Let's see what happens when we start with the letter "A":
@@ -153,10 +244,24 @@ Let's see what happens when we start with the letter "A":
 alpha_effect = FunPark.Monad.Effect.pure("A")
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Effect.Right{effect: #Function<2.126265695/1 in FunPark.Monad.Effect.Right.pure/1>}
+```
+
 And compose it with increment/1:
 
 ```elixir
 error_effect = alpha_effect |> FunPark.Monad.map(increment)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Effect.Right{
+  effect: #Function<2.796317/1 in FunPark.Monad.FunPark.Monad.Effect.Right.map/2>
+}
 ```
 
 When we execute it in our controlled boundary:
@@ -165,10 +270,34 @@ When we execute it in our controlled boundary:
 FunPark.Monad.Effect.run(error_effect)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+Task completed in 0ms
+Task completed in 2ms
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Either.Left{
+  left: %FunPark.Errors.EffectError{
+    stage: :map,
+    reason: %ArithmeticError{message: "bad argument in arithmetic expression"}
+  }
+}
+```
+
 Let's lift increment/1:
 
 ```elixir
 increment_effect = FunPark.Monad.Effect.from_try(increment)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+#Function<2.9888490/1 in FunPark.Monad.Effect.from_try/1>
 ```
 
 And how do we compose with a Kleisli function? Use bind/2:
@@ -177,10 +306,32 @@ And how do we compose with a Kleisli function? Use bind/2:
 error_effect_bind = alpha_effect |> FunPark.Monad.bind(increment_effect)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Effect.Right{
+  effect: #Function<1.796317/1 in FunPark.Monad.FunPark.Monad.Effect.Right.bind/2>
+}
+```
+
 And now, when we run it:
 
 ```elixir
 FunPark.Monad.Effect.run(error_effect_bind)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 0ms
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Either.Left{left: %ArithmeticError{message: "bad argument in arithmetic expression"}}
 ```
 
 I/O typically takes time, so let's simulate this with a half-second delay:
@@ -189,16 +340,44 @@ I/O typically takes time, so let's simulate this with a half-second delay:
 delay = fn value -> Process.sleep(500); value end
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+#Function<42.81571850/1 in :erl_eval.expr/6>
+```
+
 and map it to our six_effect:
 
 ```elixir
 long_six_effect = six_effect |> FunPark.Monad.map(delay)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Effect.Right{
+  effect: #Function<2.796317/1 in FunPark.Monad.FunPark.Monad.Effect.Right.map/2>
+}
+```
+
 And when we run it in our protected boundary:
 
 ```elixir
 FunPark.Monad.Effect.run(long_six_effect)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 501ms
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Either.Right{right: 6}
 ```
 
 ## Effectful Store
@@ -245,10 +424,30 @@ Let's start by adding a :schedule table to our ETS store:
 FunPark.Store.create_table(:schedule)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Either.Right{right: :schedule}
+```
+
 Then generate the Apple Cart ride:
 
 ```elixir
 apple = FunPark.Ride.make("Apple Cart")
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Ride{
+  id: 1219,
+  name: "Apple Cart",
+  min_age: 0,
+  min_height: 0,
+  wait_time: 0,
+  online: true,
+  tags: []
+}
 ```
 
 And create the effects for managing the Apple Cart:
@@ -259,10 +458,39 @@ get_effect = FunPark.Maintenance.Store.get(apple, :schedule)
 remove_effect = FunPark.Maintenance.Store.remove(apple, :schedule)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Effect.Right{effect: #Function<5.9888490/1 in FunPark.Monad.Effect.map_left/2>}
+```
+
 We can run the save Effect:
 
 ```elixir
 FunPark.Monad.Effect.run(save_effect)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+Task completed in 0ms
+Task completed in 501ms
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Either.Right{
+  right: %FunPark.Ride{
+    id: 1219,
+    name: "Apple Cart",
+    min_age: 0,
+    min_height: 0,
+    wait_time: 0,
+    online: true,
+    tags: []
+  }
+}
 ```
 
 If we ask the store for Apple Cart:
@@ -271,10 +499,46 @@ If we ask the store for Apple Cart:
 FunPark.Monad.Effect.run(get_effect)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+Task completed in 0ms
+Task completed in 501ms
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Either.Right{
+  right: %{
+    id: 1219,
+    name: "Apple Cart",
+    tags: [],
+    wait_time: 0,
+    min_age: 0,
+    min_height: 0,
+    online: true
+  }
+}
+```
+
 Now, if we remove Apple Cart:
 
 ```elixir
 FunPark.Monad.Effect.run(remove_effect)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+Task completed in 0ms
+Task completed in 501ms
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Either.Right{right: 1219}
 ```
 
 And if we rerun the get_effect:
@@ -283,16 +547,52 @@ And if we rerun the get_effect:
 FunPark.Monad.Effect.run(get_effect)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+Task completed in 0ms
+Task completed in 501ms
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Either.Left{left: :not_found}
+```
+
 We can also drop the entire table:
 
 ```elixir
 FunPark.Store.drop_table(:schedule)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Either.Right{right: :schedule}
+```
+
 And when we run the get Effect again:
 
 ```elixir
 FunPark.Monad.Effect.run(get_effect)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+Task completed in 15ms
+Task completed in 516ms
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Either.Left{
+  left: %ArgumentError{
+    message: "errors were found at the given arguments:\n\n  * 1st argument: the table identifier does not refer to an existing ETS table\n"
+  }
+}
 ```
 
 ## Maintenance Repository
@@ -315,10 +615,37 @@ Success is represented by Right with the list of successfully created tables:
 FunPark.Maintenance.Repo.create_store()
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Either.Right{right: [:schedule, :unschedule, :lockout, :compliance]}
+```
+
 But if we run it again:
 
 ```elixir
 FunPark.Maintenance.Repo.create_store()
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Either.Left{
+  left: [
+    %ArgumentError{
+      message: "errors were found at the given arguments:\n\n  * 1st argument: table name already exists\n"
+    },
+    %ArgumentError{
+      message: "errors were found at the given arguments:\n\n  * 1st argument: table name already exists\n"
+    },
+    %ArgumentError{
+      message: "errors were found at the given arguments:\n\n  * 1st argument: table name already exists\n"
+    },
+    %ArgumentError{
+      message: "errors were found at the given arguments:\n\n  * 1st argument: table name already exists\n"
+    }
+  ]
+}
 ```
 
 ````markdown
@@ -357,16 +684,65 @@ FunPark.Maintenance.Repo.create_store()
 apple = FunPark.Ride.make("Apple Cart")
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Ride{
+  id: 1283,
+  name: "Apple Cart",
+  min_age: 0,
+  min_height: 0,
+  wait_time: 0,
+  online: true,
+  tags: []
+}
+```
+
 Next, create an Effect to add the Apple Cart to scheduled maintenance:
 
 ```elixir
 effect = FunPark.Maintenance.Repo.add_ride_effect(apple)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Effect.Right{
+  effect: #Function<1.796317/1 in FunPark.Monad.FunPark.Monad.Effect.Right.bind/2>
+}
+```
+
 And finally execute our Effect with the table name:
 
 ```elixir
 FunPark.Monad.Effect.run(effect, %{table: :schedule})
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+Task completed in 12ms
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 513ms
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Either.Right{
+  right: %FunPark.Ride{
+    id: 1283,
+    name: "Apple Cart",
+    min_age: 0,
+    min_height: 0,
+    wait_time: 0,
+    online: true,
+    tags: []
+  }
+}
 ```
 
 ````markdown
@@ -385,10 +761,39 @@ Let's modify the Apple Cart with an invalid wait time:
 invalid_apple = FunPark.Ride.change(apple, %{wait_time: -10})
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Ride{
+  id: 1283,
+  name: "Apple Cart",
+  min_age: 0,
+  min_height: 0,
+  wait_time: -10,
+  online: true,
+  tags: []
+}
+```
+
 Now, when we try to save it:
 
 ```elixir
 FunPark.Maintenance.Repo.add_schedule(invalid_apple)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+Task completed in 11ms
+Task completed in 11ms
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Either.Left{
+  left: %FunPark.Errors.ValidationError{errors: ["Apple Cart: wait time must be non negative"]}
+}
 ```
 
 If we delete the underlying table:
@@ -397,10 +802,37 @@ If we delete the underlying table:
 FunPark.Store.drop_table(:schedule)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Either.Right{right: :schedule}
+```
+
 And pass it a valid ride:
 
 ```elixir
 FunPark.Maintenance.Repo.add_schedule(apple)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 501ms
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Either.Left{
+  left: %ArgumentError{
+    message: "errors were found at the given arguments:\n\n  * 1st argument: the table identifier does not refer to an existing ETS table\n"
+  }
+}
 ```
 
 ````markdown
@@ -438,10 +870,76 @@ apple = FunPark.Ride.make("Apple Cart")
 FunPark.Maintenance.Repo.create_store()
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Either.Left{
+  left: [
+    %ArgumentError{
+      message: "errors were found at the given arguments:\n\n  * 1st argument: table name already exists\n"
+    },
+    %ArgumentError{
+      message: "errors were found at the given arguments:\n\n  * 1st argument: table name already exists\n"
+    },
+    %ArgumentError{
+      message: "errors were found at the given arguments:\n\n  * 1st argument: table name already exists\n"
+    },
+    %ArgumentError{
+      message: "errors were found at the given arguments:\n\n  * 1st argument: table name already exists\n"
+    }
+  ]
+}
+```
+
 Now we can add our ride to all the maintenance tables:
 
 ```elixir
 FunPark.Maintenance.add_to_all(apple)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 503ms
+Task completed in 503ms
+Task completed in 503ms
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 503ms
+Task completed in 503ms
+Task completed in 503ms
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 501ms
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Either.Right{
+  right: %FunPark.Ride{
+    id: 1411,
+    name: "Apple Cart",
+    min_age: 0,
+    min_height: 0,
+    wait_time: 0,
+    online: true,
+    tags: []
+  }
+}
 ```
 
 ````markdown
@@ -510,10 +1008,69 @@ FunPark.Maintenance.Repo.create_store()
 apple = FunPark.Ride.make("Apple Cart")
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Ride{
+  id: 1475,
+  name: "Apple Cart",
+  min_age: 0,
+  min_height: 0,
+  wait_time: 0,
+  online: true,
+  tags: []
+}
+```
+
 We can add the Apple Cart to all maintenance tables:
 
 ```elixir
 FunPark.Maintenance.add_to_all(apple)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 501ms
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Either.Right{
+  right: %FunPark.Ride{
+    id: 1475,
+    name: "Apple Cart",
+    min_age: 0,
+    min_height: 0,
+    wait_time: 0,
+    online: true,
+    tags: []
+  }
+}
 ```
 
 and remove it as well:
@@ -522,10 +1079,73 @@ and remove it as well:
 FunPark.Maintenance.remove_from_all(apple)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 501ms
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Either.Right{
+  right: %FunPark.Ride{
+    id: 1475,
+    name: "Apple Cart",
+    min_age: 0,
+    min_height: 0,
+    wait_time: 0,
+    online: true,
+    tags: []
+  }
+}
+```
+
 But if we create an invalid Apple Cart:
 
 ```elixir
 invalid_apple = FunPark.Ride.change(apple, %{wait_time: -10})
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Ride{
+  id: 1475,
+  name: "Apple Cart",
+  min_age: 0,
+  min_height: 0,
+  wait_time: -10,
+  online: true,
+  tags: []
+}
 ```
 
 The difference matters, adding Apple Cart to all our tables will stop at the first error:
@@ -534,10 +1154,54 @@ The difference matters, adding Apple Cart to all our tables will stop at the fir
 FunPark.Maintenance.add_to_all(invalid_apple)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+Task completed in 0ms
+Task completed in 0ms
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Either.Left{
+  left: %FunPark.Errors.ValidationError{errors: ["Apple Cart: wait time must be non negative"]}
+}
+```
+
 But removing it will attempt all removals independently, returning a list of validation errors:
 
 ```elixir
 FunPark.Maintenance.remove_from_all(invalid_apple)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 0ms
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Either.Left{
+  left: %FunPark.Errors.ValidationError{
+    errors: ["Apple Cart: wait time must be non negative",
+     "Apple Cart: wait time must be non negative", "Apple Cart: wait time must be non negative",
+     "Apple Cart: wait time must be non negative"]
+  }
+}
 ```
 
 Now let's try a valid ride with a broken store:
@@ -546,16 +1210,88 @@ Now let's try a valid ride with a broken store:
 FunPark.Store.drop_table(:schedule)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Either.Right{right: :schedule}
+```
+
 With add_to_all/1, the internal bind/2 will halt on the first error:
 
 ```elixir
 FunPark.Maintenance.add_to_all(apple)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 501ms
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Either.Left{
+  left: %ArgumentError{
+    message: "errors were found at the given arguments:\n\n  * 1st argument: the table identifier does not refer to an existing ETS table\n"
+  }
+}
+```
+
 But remove_from_all/1, uses sequence_a/1, and will independently run all removal effects:
 
 ```elixir
 FunPark.Maintenance.remove_from_all(apple)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 501ms
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Either.Left{
+  left: [
+    %ArgumentError{
+      message: "errors were found at the given arguments:\n\n  * 1st argument: the table identifier does not refer to an existing ETS table\n"
+    }
+  ]
+}
 ```
 
 ## Inject Behavior, Not Configuration
@@ -612,10 +1348,32 @@ FunPark.Maintenance.Repo.create_store()
 apple = FunPark.Ride.make("Apple Cart")
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Ride{
+  id: 1539,
+  name: "Apple Cart",
+  min_age: 0,
+  min_height: 0,
+  wait_time: 0,
+  online: true,
+  tags: []
+}
+```
+
 Next, generate an Effect to check if it is in scheduled maintenance:
 
 ```elixir
 effect = FunPark.Maintenance.Repo.in_schedule(apple)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Effect.Right{
+  effect: #Function<2.796317/1 in FunPark.Monad.FunPark.Monad.Effect.Right.map/2>
+}
 ```
 
 and create the environment with our Store:
@@ -624,10 +1382,32 @@ and create the environment with our Store:
 env = %{store: FunPark.Maintenance.Store}
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%{store: FunPark.Maintenance.Store}
+```
+
 When we run the Effect in the environment:
 
 ```elixir
 FunPark.Monad.Effect.run(effect, env)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 501ms
+Task completed in 502ms
+Task completed in 502ms
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Either.Left{left: :not_found}
 ```
 
 But if we add Apple Cart to scheduled maintenance:
@@ -636,10 +1416,63 @@ But if we add Apple Cart to scheduled maintenance:
 FunPark.Maintenance.Repo.add_schedule(apple)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 501ms
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Either.Right{
+  right: %FunPark.Ride{
+    id: 1539,
+    name: "Apple Cart",
+    min_age: 0,
+    min_height: 0,
+    wait_time: 0,
+    online: true,
+    tags: []
+  }
+}
+```
+
 and rerun our Effect:
 
 ```elixir
 FunPark.Monad.Effect.run(effect, env)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 501ms
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Either.Right{
+  right: %FunPark.Ride{
+    id: 1539,
+    name: "Apple Cart",
+    min_age: 0,
+    min_height: 0,
+    wait_time: 0,
+    online: true,
+    tags: []
+  }
+}
 ```
 
 ````markdown
@@ -664,10 +1497,43 @@ FunPark.Maintenance.Repo.create_store()
 apple = FunPark.Ride.make("Apple Cart")
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Ride{
+  id: 1603,
+  name: "Apple Cart",
+  min_age: 0,
+  min_height: 0,
+  wait_time: 0,
+  online: true,
+  tags: []
+}
+```
+
 Since nothing has been added yet, check_in_all/1 fails with a Left:
 
 ```elixir
 FunPark.Maintenance.check_in_all(apple)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 501ms
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Either.Left{left: :not_found}
 ```
 
 If we add the ride to all four maintenance tables:
@@ -676,10 +1542,99 @@ If we add the ride to all four maintenance tables:
 FunPark.Maintenance.add_to_all(apple)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 501ms
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Either.Right{
+  right: %FunPark.Ride{
+    id: 1603,
+    name: "Apple Cart",
+    min_age: 0,
+    min_height: 0,
+    wait_time: 0,
+    online: true,
+    tags: []
+  }
+}
+```
+
 And rerun check_in_all/1:
 
 ```elixir
 FunPark.Maintenance.check_in_all(apple)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 1002ms
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 1503ms
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 2004ms
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Either.Right{
+  right: %FunPark.Ride{
+    id: 1603,
+    name: "Apple Cart",
+    min_age: 0,
+    min_height: 0,
+    wait_time: 0,
+    online: true,
+    tags: []
+  }
+}
 ```
 
 We remove it from our :lockout table:
@@ -688,10 +1643,67 @@ We remove it from our :lockout table:
 FunPark.Maintenance.Repo.remove_lockout(apple)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 1ms
+Task completed in 502ms
+Task completed in 502ms
+Task completed in 502ms
+Task completed in 502ms
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Either.Right{
+  right: %FunPark.Ride{
+    id: 1603,
+    name: "Apple Cart",
+    min_age: 0,
+    min_height: 0,
+    wait_time: 0,
+    online: true,
+    tags: []
+  }
+}
+```
+
 Once again, if we run our check_in_all/1:
 
 ```elixir
 FunPark.Maintenance.check_in_all(apple)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 1002ms
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 1503ms
+Task completed in 1503ms
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Either.Left{left: :not_found}
 ```
 
 ## Flip the Logic
@@ -750,10 +1762,73 @@ FunPark.Maintenance.Repo.create_store()
 apple = FunPark.Ride.make("Apple Cart")
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Ride{
+  id: 1667,
+  name: "Apple Cart",
+  min_age: 0,
+  min_height: 0,
+  wait_time: 0,
+  online: true,
+  tags: []
+}
+```
+
 And let's clean up the store to be certain Apple Cart is not saved:
 
 ```elixir
 FunPark.Maintenance.remove_from_all(apple)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 501ms
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Either.Right{
+  right: %FunPark.Ride{
+    id: 1667,
+    name: "Apple Cart",
+    min_age: 0,
+    min_height: 0,
+    wait_time: 0,
+    online: true,
+    tags: []
+  }
+}
 ```
 
 Then check whether it's online:
@@ -762,16 +1837,138 @@ Then check whether it's online:
 FunPark.Maintenance.check_online_bind(apple)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 0ms
+Task completed in 501ms
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 0ms
+Task completed in 501ms
+Task completed in 1002ms
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 0ms
+Task completed in 501ms
+Task completed in 1503ms
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 0ms
+Task completed in 501ms
+Task completed in 2004ms
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Either.Right{
+  right: %FunPark.Ride{
+    id: 1667,
+    name: "Apple Cart",
+    min_age: 0,
+    min_height: 0,
+    wait_time: 0,
+    online: true,
+    tags: []
+  }
+}
+```
+
 Now let's add it back to all the tables:
 
 ```elixir
 FunPark.Maintenance.add_to_all(apple)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 501ms
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Either.Right{
+  right: %FunPark.Ride{
+    id: 1667,
+    name: "Apple Cart",
+    min_age: 0,
+    min_height: 0,
+    wait_time: 0,
+    online: true,
+    tags: []
+  }
+}
+```
+
 When we run the check again, we get an answer in just half a second:
 
 ```elixir
 FunPark.Maintenance.check_online_bind(apple)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 501ms
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Either.Left{left: "Apple Cart is in scheduled maintenance"}
 ```
 
 ````markdown
@@ -834,10 +2031,118 @@ Let's clean up by removing Apple Cart from every table:
 FunPark.Maintenance.remove_from_all(apple)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 502ms
+Task completed in 502ms
+Task completed in 502ms
+Task completed in 502ms
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 501ms
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Either.Right{
+  right: %FunPark.Ride{
+    id: 1667,
+    name: "Apple Cart",
+    min_age: 0,
+    min_height: 0,
+    wait_time: 0,
+    online: true,
+    tags: []
+  }
+}
+```
+
 And check whether it's online:
 
 ```elixir
 FunPark.Maintenance.check_online(apple)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 501ms
+Task completed in 501ms
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Either.Right{
+  right: %FunPark.Ride{
+    id: 1667,
+    name: "Apple Cart",
+    min_age: 0,
+    min_height: 0,
+    wait_time: 0,
+    online: true,
+    tags: []
+  }
+}
 ```
 
 And if we add it back to all the tables:
@@ -846,10 +2151,103 @@ And if we add it back to all the tables:
 FunPark.Maintenance.add_to_all(apple)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 501ms
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Either.Right{
+  right: %FunPark.Ride{
+    id: 1667,
+    name: "Apple Cart",
+    min_age: 0,
+    min_height: 0,
+    wait_time: 0,
+    online: true,
+    tags: []
+  }
+}
+```
+
 When we run the check:
 
 ```elixir
 FunPark.Maintenance.check_online(apple)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 502ms
+Task completed in 502ms
+Task completed in 502ms
+Task completed in 502ms
+Task completed in 502ms
+Task completed in 502ms
+Task completed in 502ms
+Task completed in 502ms
+Task completed in 502ms
+Task completed in 502ms
+Task completed in 502ms
+Task completed in 502ms
+Task completed in 502ms
+Task completed in 502ms
+Task completed in 502ms
+Task completed in 502ms
+Task completed in 502ms
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 502ms
+Task completed in 502ms
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Either.Left{
+  left: ["Apple Cart is out of compliance", "Apple Cart is locked out",
+   "Apple Cart is in unscheduled maintenance", "Apple Cart is in scheduled maintenance"]
+}
 ```
 
 ````markdown
@@ -883,10 +2281,34 @@ haunted_mansion = FunPark.Ride.make(
 )
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Ride{
+  id: 1859,
+  name: "Haunted Mansion",
+  min_age: 14,
+  min_height: 120,
+  wait_time: 0,
+  online: true,
+  tags: []
+}
+```
+
 And check if Beth can enter the fast pass lane:
 
 ```elixir
 FunPark.Ride.FastLane.validate_fast_pass_lane_b(beth, haunted_mansion)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Either.Left{
+  left: %FunPark.Errors.ValidationError{
+    errors: ["Beth is not tall enough", "Beth does not have a fast pass"]
+  }
+}
 ```
 
 Let's check Elsie:
@@ -895,14 +2317,152 @@ Let's check Elsie:
 FunPark.Ride.FastLane.validate_fast_pass_lane_b(elsie, haunted_mansion)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 0ms
+Task completed in 501ms
+Task completed in 0ms
+Task completed in 501ms
+Task completed in 0ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 0ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 501ms
+Task completed in 501ms
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Either.Right{
+  right: %FunPark.Patron{
+    id: 1795,
+    name: "Elsie",
+    age: 17,
+    height: 135,
+    ticket_tier: :vip,
+    fast_passes: [],
+    reward_points: 0,
+    likes: [],
+    dislikes: []
+  }
+}
+```
+
 Later, the Haunted Mansion throws a fault and triggers a lockout:
 
 ```elixir
 FunPark.Maintenance.Repo.add_lockout(haunted_mansion)
 ```
 
+<!-- livebook:{"output":true} -->
+
+```
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 501ms
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Either.Right{
+  right: %FunPark.Ride{
+    id: 1859,
+    name: "Haunted Mansion",
+    min_age: 14,
+    min_height: 120,
+    wait_time: 0,
+    online: true,
+    tags: []
+  }
+}
+```
+
 Now, when we check Elsie:
 
 ```elixir
 FunPark.Ride.FastLane.validate_fast_pass_lane_b(elsie, haunted_mansion)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 501ms
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 0ms
+Task completed in 501ms
+Task completed in 0ms
+Task completed in 501ms
+Task completed in 501ms
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+%FunPark.Monad.Either.Left{
+  left: %FunPark.Errors.ValidationError{errors: ["Haunted Mansion is locked out"]}
+}
 ```
